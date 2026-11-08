@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#1b2030">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="코드북">
+<title>콘텐츠 코드북</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: 악보 노트처럼 — 상단 마스트헤드, 탭 바, 카드 그리드. 코드명은 화음 기호처럼 모노 폰트 칩 */
+:root{
+  --bg:#f3f4f1; --paper:#ffffff; --ink:#17191c; --sub:#5d6268; --line:#dfe2dc;
+  --accent:#1f4fd1; --accent-soft:#e6ecfb; --amber:#c2740c; --amber-soft:#fbf0de;
+  --good:#16804f; --good-soft:#e3f4ea; --bad:#b3362b; --bad-soft:#f9e6e3;
+  --display:"Black Han Sans","IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131518; --paper:#1c1f23; --ink:#ecedee; --sub:#a1a6ad; --line:#2d3137;
+  --accent:#7d9dff; --accent-soft:#1e2a4a; --amber:#f0a73c; --amber-soft:#3a2a12;
+  --good:#5fd39a; --good-soft:#163526; --bad:#f08a7f; --bad-soft:#3c1d1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131518; --paper:#1c1f23; --ink:#ecedee; --sub:#a1a6ad; --line:#2d3137;
+  --accent:#7d9dff; --accent-soft:#1e2a4a; --amber:#f0a73c; --amber-soft:#3a2a12;
+  --good:#5fd39a; --good-soft:#163526; --bad:#f08a7f; --bad-soft:#3c1d1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+header.mast{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;border-bottom:2px solid var(--ink);padding-bottom:14px}
+.mast h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,48px);line-height:1;margin:0;letter-spacing:-.01em}
+.mast p{margin:6px 0 0;color:var(--sub);max-width:60ch;text-wrap:pretty}
+.stat{font-family:var(--mono);font-size:12px;color:var(--sub);text-align:right;line-height:1.5}
+.stat b{color:var(--ink);font-size:20px}
+.today{margin-top:16px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.today .lab{font-size:11px;letter-spacing:.12em;color:var(--sub)}
+.today .t{min-width:0}
+.today .t strong{display:block}
+.today .t span{color:var(--sub);font-size:13.5px}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;overflow-x:auto;margin-top:18px;padding-block:8px;border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+nav.tabs a{flex:none;text-decoration:none;color:var(--sub);padding:7px 12px;border-radius:999px;font-weight:500;font-size:14px}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+nav.tabs a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.view{padding-top:18px}
+h2{font-size:20px;margin:0 0 4px;text-wrap:balance}
+.lead{color:var(--sub);margin:0 0 16px;max-width:68ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+input[type=search],select{font:inherit;padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);min-width:0;flex:1 1 220px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 15px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card .top{display:flex;align-items:center;gap:8px}
+.code{font-family:var(--mono);font-weight:700;font-size:12px;background:var(--ink);color:var(--bg);border-radius:4px;padding:2px 6px}
+.catlab{font-size:12px;color:var(--sub)}
+.card h3{margin:0;font-size:16.5px}
+.formula{margin:0;font-weight:500}
+.row{font-size:13.6px;margin:0}
+.row b{display:inline-block;min-width:4.2em;color:var(--sub);font-weight:500}
+.row.pro{background:var(--amber-soft);border-radius:6px;padding:6px 8px}
+.row.pro b{color:var(--amber)}
+.row.kid{background:var(--accent-soft);border-radius:6px;padding:6px 8px}
+.row.kid b{color:var(--accent)}
+.known{font:inherit;font-size:12.5px;border:1px solid var(--line);background:transparent;color:var(--sub);border-radius:6px;padding:4px 9px;cursor:pointer}
+.known[aria-pressed="true"]{background:var(--good-soft);color:var(--good);border-color:var(--good)}
+.src{font-size:12px;color:var(--sub)}
+.src a{color:var(--accent)}
+.tag{font-family:var(--mono);font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 5px;margin-right:4px}
+.tablebox{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--sub);font-weight:500;letter-spacing:.04em}
+tr:last-child td{border-bottom:none}
+.gen{background:var(--paper);border:2px solid var(--ink);border-radius:12px;padding:18px;margin-bottom:18px}
+.gen .mission{font-size:17px;font-weight:700;margin:6px 0 10px;text-wrap:pretty}
+.gen ol{margin:0;padding-left:20px;color:var(--sub);font-size:14px}
+.btn{font:inherit;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 15px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+.note{font-size:13px;color:var(--sub);margin-top:10px}
+.quiz{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px;max-width:760px}
+.qmeta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--sub)}
+.qtext{font-size:17px;font-weight:700;margin:10px 0 12px;text-wrap:pretty}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{background:var(--good-soft);border-color:var(--good)}
+.opt.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.fb{margin-top:12px;font-size:14px;border-left:3px solid var(--accent);padding-left:10px}
+.fb strong{display:block}
+.qbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.progress{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0 0}
+.progress i{display:block;height:100%;background:var(--accent);width:0}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+footer{margin-top:28px;font-size:12.5px;color:var(--sub);border-top:1px solid var(--line);padding-top:12px}
+
+.viz{width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+.viz .vt{font:500 12px var(--body);fill:var(--ink)} .viz .vt2{font:500 10px var(--body);fill:var(--ink)}
+.viz .vtb{font:700 12px var(--body);fill:var(--ink)} .viz .vts{font:400 10.5px var(--body);fill:var(--sub)}
+.viz .vtw{font:700 12px var(--body);fill:#fff} .viz .vtw2{font:500 10px var(--body);fill:#fff}
+.viz .vtq{font:900 30px var(--display);fill:var(--ink)} .viz .vtqw{font:900 30px var(--display);fill:#fff}
+.viz .fac{fill:var(--accent)} .viz .fam{fill:var(--amber)} .viz .fln{fill:var(--line)} .viz .fpp{fill:var(--paper);stroke:var(--line)}
+.viz .fdk{fill:#1b2030} .viz .fi{fill:#1b2030} .viz .fa{fill:var(--accent)} .viz .fdash{fill:none;stroke:var(--sub);stroke-dasharray:4 3}
+.viz .vs{stroke:var(--line);stroke-width:1.5;fill:none} .viz .vsa{stroke:var(--accent);stroke-width:2.5;fill:none}
+.viz .vsd{stroke:var(--sub);stroke-width:1.2;stroke-dasharray:4 3;fill:none} .viz .vsi{stroke:#1b2030;stroke-width:2;fill:none}
+.viz .vsw{stroke:#fff;stroke-width:2} .viz .va{stroke:var(--accent);stroke-width:2} .viz .vaw{stroke:#fff;stroke-width:2.5}
+.copyviz{background:var(--ink);color:var(--bg);border-radius:8px;padding:18px 16px;min-height:110px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.copyviz span{font-size:11px;letter-spacing:.1em;opacity:.7}.copyviz p{margin:0;font-family:var(--display);font-size:19px;line-height:1.35;text-wrap:balance}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.lk{font-size:12.5px;text-decoration:none;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:4px 9px}
+.lk:hover{background:var(--accent-soft)}
+.cardfoot{margin-top:auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.miniq{display:grid;gap:6px}
+.labbox{background:var(--paper);border:2px solid var(--ink);border-radius:12px;padding:16px;margin-bottom:16px;display:grid;gap:10px}
+.askchip{font:inherit;font-size:12.5px;border:1px dashed var(--line);background:transparent;color:var(--sub);border-radius:999px;padding:4px 10px;cursor:pointer}
+#askOut{white-space:pre-wrap;font-size:14.5px;background:var(--bg);border-radius:8px;padding:12px;min-height:60px}
+input[type=text]{font:inherit;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);min-width:0;flex:1 1 260px}
+
+.vids{display:grid;gap:8px}.vlab{font-size:11px;letter-spacing:.08em;color:var(--sub);font-weight:700}
+.vid{display:grid;grid-template-columns:132px 1fr;gap:10px;align-items:center;text-decoration:none;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px;transition:border-color .15s}
+.vid:hover{border-color:var(--accent)}.vid.sm{grid-template-columns:110px 1fr}
+.vth{position:relative;aspect-ratio:16/9;border-radius:7px;overflow:hidden;background:#1b2030;display:block}
+.vth img{width:100%;height:100%;object-fit:cover;display:block}
+.vth.noimg{display:flex;align-items:center;justify-content:center;gap:6px;color:#fff}
+.play{position:absolute;inset:auto auto 6px 6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center}
+.vth.noimg .play{position:static}.vk{font-size:11px;font-weight:700}
+.vtx{display:grid;gap:3px;min-width:0}.vtx b{font-size:13px;line-height:1.35}.vtx span{font-size:12px;color:var(--sub);line-height:1.4}
+@media (max-width:560px){.vid{grid-template-columns:104px 1fr}}
+@media (max-width:560px){header.mast{grid-template-columns:1fr}.stat{text-align:left}.today{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="mast">
+  <div>
+    <h1>콘텐츠 코드북</h1>
+    <p>대중음악에 머니 코드가 있듯, 잘되는 영상에도 반복되는 공식이 있습니다. 2040이 주 고객인 사업을 기준으로 공식을 익히고, 다른 분야의 원리를 내 콘텐츠에 대입하는 연습장입니다.</p>
+  </div>
+  <div class="stat"><b id="knownCount">0</b> / <span id="totalCount">0</span> 코드 익힘<br>퀴즈 최고 <b id="bestScore" style="font-size:14px">—</b></div>
+</header>
+
+<div class="today" aria-live="polite">
+  <div class="lab">오늘의 코드</div>
+  <div class="t"><strong id="todayName"></strong><span id="todayFormula"></span></div>
+  <button class="btn ghost" id="todayNext" type="button">다른 코드</button>
+</div>
+
+<nav class="tabs" aria-label="섹션">
+  <a href="#codes">공식 코드</a>
+  <a href="#cases">레전드 사례</a>
+  <a href="#borrow">차용 연습</a>
+  <a href="#ages">연령대 · 2040 지도</a>
+  <a href="#trends">2026 트렌드</a>
+  <a href="#quiz">퀴즈</a>
+  <a href="#lab">새 레슨 · 질문</a>
+</nav>
+
+<section class="view" id="v-codes">
+  <h2>공식 코드</h2>
+  <p class="lead">각 코드는 원리 도식, 공식, 왜 통하는지, 전문가만 보는 디테일, 대입 예로 되어 있습니다. 도식은 원리를 보여 주려고 직접 그린 예시입니다. 카드 아래 <실제 작품 보기>를 누르면 해당 광고와 영상이 바로 열립니다. 대입 예는 2040 대상과 어린이 대상을 바꿔 볼 수 있습니다. 익힌 코드는 표시해 두세요.</p>
+  <div class="chips" id="catChips"></div>
+  <div class="tools"><input type="search" id="codeSearch" placeholder="검색: 예) 썸네일, 소리, 대비"><div class="chips" style="margin:0" role="group" aria-label="대입 대상"><button class="chip" type="button" data-mode="ad">2040 대입</button><button class="chip" type="button" data-mode="kid">어린이 대입</button></div></div>
+  <div class="grid" id="codeGrid"></div>
+</section>
+
+<section class="view" id="v-cases" hidden>
+  <h2>레전드 사례 해부</h2>
+  <p class="lead">유명한 광고, 영상, 영화가 왜 통했는지와, 거기서 훔쳐 올 원리를 정리했습니다. 2040 표시는 국내 2040이 주 고객인 브랜드 사례입니다. 원작은 직접 찾아 보시고, 여기서는 구조만 보세요.</p>
+  <div class="grid" id="caseGrid"></div>
+</section>
+
+<section class="view" id="v-borrow" hidden>
+  <h2>차용 연습</h2>
+  <p class="lead">같은 분야를 따라 하면 비슷해질 뿐입니다. 전혀 다른 분야에서 통하는 장치를 가져와 내 콘텐츠에 대입하는 연습입니다.</p>
+  <div class="gen">
+    <div class="catlab">오늘의 미션</div>
+    <div class="mission" id="mission"></div>
+    <ol id="missionQs"></ol>
+    <div class="qbar">
+      <button class="btn" id="genBtn" type="button">새 미션 뽑기</button>
+      <select id="targetSel" aria-label="내 콘텐츠 종류">
+        <option value="any">내 콘텐츠: 무작위</option>
+        <option>직장인 대상 오디오북 홍보 쇼츠</option><option>수면 오디오북 릴스</option><option>신간 북트레일러</option><option>전자책 소개 영상</option><option>출판사 대상 서비스 소개 영상</option><option>SP미디어텍 브랜드 인스타 릴스</option><option>마법한자 학부모 광고</option>
+      </select>
+    </div>
+  </div>
+  <h2 style="font-size:17px">차용 지도</h2>
+  <p class="lead">다른 분야의 장치와, 그것이 사람을 붙잡는 이유, 그리고 대입 예입니다.</p>
+  <div class="tablebox"><table><thead><tr><th>가져올 분야</th><th>장치</th><th>사람이 반응하는 이유</th><th>내 콘텐츠에 대입하면</th></tr></thead><tbody id="borrowBody"></tbody></table></div>
+</section>
+
+<section class="view" id="v-ages" hidden>
+  <h2>연령대 지도</h2>
+  <p class="lead">연령대별로 반응하는 요소의 일반적 경향입니다. 데이터로 검증된 수치가 아니라 업계에서 널리 쓰는 경향이니, 실제 시청 지속 그래프로 확인하면서 고쳐 가세요.</p>
+  <div class="tablebox"><table><thead><tr><th>연령</th><th>반응하는 것</th><th>속도와 화면</th><th>결정권과 주의점</th></tr></thead><tbody id="ageBody"></tbody></table></div>
+  <h2 style="font-size:17px;margin-top:22px">2040 세분 지도</h2>
+  <p class="lead">20~40대는 한 덩어리가 아닙니다. 생활 단계마다 시간, 돈, 불안이 다릅니다. 아래도 일반적 경향이니 실제 반응으로 확인하세요.</p>
+  <div class="tablebox"><table><thead><tr><th>세분</th><th>지금의 고민</th><th>움직이는 말</th><th>잘 먹히는 형식</th><th>SP 사업에 대입</th></tr></thead><tbody id="deepBody"></tbody></table></div>
+  <h2 style="font-size:17px;margin-top:22px">2040을 움직이는 7가지 동기</h2>
+  <div class="grid" id="motiveGrid"></div>
+</section>
+
+<section class="view" id="v-trends" hidden>
+  <h2>2026 트렌드</h2>
+  <p class="lead">2026년 11월에 확인한 자료입니다. 출처마다 근거 수준이 달라서 함께 적었습니다. 트렌드는 몇 달 만에 바뀌니 공식 코드보다 가볍게 보세요.</p>
+  <div class="grid" id="trendGrid"></div>
+</section>
+
+<section class="view" id="v-quiz" hidden>
+  <h2>퀴즈</h2>
+  <p class="lead">상황 퀴즈는 실제 기획 판단을, 코드 드릴은 공식 이름과 내용을 연결하는 연습입니다. 틀린 문제는 끝에 다시 보여 줍니다.</p>
+  <div class="tools">
+    <button class="btn" id="startScenario" type="button">상황 퀴즈 10문제</button>
+    <button class="btn ghost" id="startDrill" type="button">코드 드릴 10문제</button>
+  </div>
+  <div class="quiz" id="quizBox"></div>
+</section>
+
+
+<section class="view" id="v-lab" hidden>
+  <h2>새 레슨 · 질문</h2>
+  <p class="lead">버튼을 누르면 Claude가 아직 다루지 않은 유명 광고·영상·영화 사례로 새 레슨을 만들어 줍니다. 궁금한 것은 직접 물어볼 수 있습니다. Claude는 이 앱 안에서 웹을 검색하지 못해서, 지금 막 뜨는 영상이 아니라 널리 알려진 사례를 다룹니다. 실제 영상은 각 레슨의 링크로 확인하세요.</p>
+  <div id="labOff" class="labbox"><strong>이 기능은 Claude 앱에서 이 페이지를 열었을 때 동작합니다.</strong><span class="src">공식 코드, 사례, 퀴즈는 어디서나 그대로 쓸 수 있습니다.</span></div>
+  <div id="labLive" hidden>
+    <div class="labbox">
+      <div class="tools" style="margin:0"><select id="labField" aria-label="분야"><option value="any">분야: 무작위</option><option>TV·디지털 광고</option><option>유튜브 쇼츠·릴스</option><option>영화 예고편</option><option>뮤직비디오</option><option>브랜드 캠페인</option><option>게임 트레일러</option><option>애니메이션</option></select>
+      <button class="btn" id="labBtn" type="button">새 레슨 받기</button><button class="btn ghost" id="labStop" type="button" hidden>멈추기</button></div>
+      <p class="src" id="labStatus" aria-live="polite">처음 누르면 Claude 사용 허용을 묻습니다. 사용량은 보는 사람의 Claude 계정에서 쓰입니다.</p>
+    </div>
+    <div class="labbox">
+      <strong>궁금한 것 물어보기</strong>
+      <div class="tools" style="margin:0"><input type="text" id="askIn" placeholder="예) 애플 광고는 왜 제품을 적게 보여줄까?"><button class="btn" id="askBtn" type="button">묻기</button></div>
+      <div class="chips" style="margin:0"><button class="askchip" type="button">넷플릭스 예고편 썸네일은 왜 얼굴이 클까?</button><button class="askchip" type="button">2030이 저장하는 릴스의 공통점은?</button><button class="askchip" type="button">북트레일러에 어울리는 음악 구조는?</button></div>
+      <div id="askOut" aria-live="polite"></div><div class="links" id="askLinks"></div>
+    </div>
+  </div>
+  <h2 style="font-size:17px">내 레슨</h2>
+  <div class="grid" id="lessonGrid"></div>
+</section>
+<footer>공식은 출발점이고 정답이 아닙니다. 만들고, 올리고, 시청 지속 그래프로 확인하세요. 사례의 연도와 내용은 널리 알려진 사실 기준이며, 트렌드 출처는 2026 트렌드 탭에 있습니다.</footer>
+</div>
+
+<script>
+const CATS=[
+ {id:'all',name:'전체'},{id:'hook',name:'훅 · 첫 3초'},{id:'story',name:'구조'},{id:'thumb',name:'썸네일'},
+ {id:'copy',name:'카피'},{id:'color',name:'색'},{id:'light',name:'조명 · 앵글'},{id:'edit',name:'편집 리듬'},
+ {id:'sound',name:'사운드'},{id:'psy',name:'심리'}];
+const CODES=[
+// HOOK
+{id:'H1',cat:'hook',name:'결과 먼저',f:'가장 놀라운 결과 장면을 첫 컷에 놓고, 어떻게 됐는지는 뒤로 미룬다.',why:'보상이 먼저 보이면 과정을 볼 이유가 생깁니다.',pro:'결과는 보여 주되 결정적 단서 하나는 가립니다. 다 보여 주면 이탈합니다.',kid:'아이가 한자 10개를 술술 읽는 장면 먼저, <3일 전엔 한 개도 못 읽었어요>로 되감기.',ad:'퇴근 후 20분 듣고 잠든 사람의 수면 기록 화면 먼저, <이게 오디오북 덕분이라고?>로 되감기.'},
+{id:'H2',cat:'hook',name:'패턴 인터럽트',f:'첫 프레임부터 예상을 깨는 움직임, 소리, 구도를 넣는다.',why:'뇌는 예측이 틀릴 때 주의를 줍니다.',pro:'첫 프레임이 정지 화면이면 이미 늦습니다. 0초에 움직임이 있어야 합니다.',kid:'책장이 넘어가다 글자가 튀어나와 캐릭터로 변신.',ad:'출근길 지하철 소음이 뚝 끊기고 성우 목소리 한 줄만 남는 첫 0초.'},
+{id:'H3',cat:'hook',name:'열린 질문',f:'답이 궁금한 질문을 던지고 답은 끝에 준다.',why:'풀리지 않은 질문은 머릿속에 남아 끝까지 보게 합니다.',pro:'시청자가 스스로 답을 추측해 볼 수 있을 만큼 구체적이어야 합니다. 막연한 질문은 안 걸립니다.',kid:'<쉴 휴(休)에는 왜 나무가 있을까?>',ad:'<한 달에 책 4권 읽는 직장인은 언제 읽을까?>'},
+{id:'H4',cat:'hook',name:'직접 호명',f:'보는 사람이 누군지 첫 문장에서 부른다.',why:'나에게 하는 말이라고 느끼면 멈춥니다.',pro:'대상이 넓을수록 아무도 안 멈춥니다. <엄마들>보다 <초2 받아쓰기 걱정인 엄마>.',kid:'<한자 시험 앞둔 초등 3학년, 이거 하나만 보세요.>',ad:'<출퇴근 1시간 넘는 30대, 그 시간 이렇게 쓰세요.>'},
+{id:'H5',cat:'hook',name:'손실 경고',f:'모르면 손해 보는 것을 먼저 말한다.',why:'사람은 얻는 것보다 잃는 것에 더 크게 반응합니다(손실 회피).',pro:'과장하면 신뢰를 잃습니다. 출판사나 교육 브랜드는 약하게 씁니다.',kid:'<이 순서로 외우면 일주일 뒤 절반을 잊어요.>',ad:'<자기 전 휴대폰 30분, 이렇게 바꾸면 잠이 달라져요.> 근거 있는 손실만.'},
+{id:'H6',cat:'hook',name:'숫자 약속',f:'<3가지>, <30초 만에>처럼 분량과 보상을 숫자로 약속한다.',why:'끝이 예측되면 이탈이 줄어듭니다.',pro:'약속한 숫자는 반드시 지킵니다. 셋이라 했으면 세 번째가 가장 강해야 합니다.',kid:'<물 수(水)가 들어간 한자 3개, 마지막이 제일 신기해요.>',ad:'<이번 달 귀로 끝낸 책 3권, 마지막이 인생책.>'},
+{id:'H7',cat:'hook',name:'소리 먼저',f:'화면보다 소리가 먼저 들어오게 한다. 첫 0.5초를 소리로 잡는다.',why:'소리는 시선을 돌리지 않아도 주의를 끕니다.',pro:'시청자 상당수는 무음으로 봅니다. 소리 훅은 자막 훅과 함께 써야 합니다.',kid:'<뚝!> 나뭇가지 부러지는 소리와 함께 나무 목(木) 등장.',ad:'책장 넘기는 소리와 커피 내리는 소리로 시작하는 아침 루틴 릴스.'},
+// STORY
+{id:'S1',cat:'story',name:'그런데·그래서 규칙',f:'장면을 <그리고>가 아니라 <그런데>와 <그래서>로 잇는다.',why:'원인과 갈등이 이어지면 다음이 궁금해집니다. 사우스파크 작가들이 알려 퍼진 원칙입니다.',pro:'대본의 장면 사이에 <그리고>가 들어가면 그 장면은 지루하거나 빼도 되는 장면입니다.',kid:'토끼가 달을 보고 싶었다. 그런데 키가 작았다. 그래서 한자 사다리를 만들었다.',ad:'책을 사 놓고 못 읽었다. 그런데 출퇴근이 길어졌다. 그래서 귀로 읽기 시작했다.'},
+{id:'S2',cat:'story',name:'스토리 스파인',f:'옛날에 → 매일 → 그러던 어느 날 → 그 때문에 → 그 때문에 → 마침내 → 그 뒤로.',why:'즉흥극에서 나와 픽사 스토리 작법으로 알려진 뼈대로, 어떤 이야기든 기승전결이 생깁니다.',pro:'<그 때문에>를 두 번 이상 이어야 짧은 영상에도 긴장이 쌓입니다.',kid:'1분짜리 한자 동화를 이 일곱 칸으로 먼저 채우고 그림을 붙이기.',ad:'매일 야근 → 그러던 어느 날 오디오북 → 그 때문에 산책이 늘고 → 그 때문에 생각이 정리되고 → 마침내 퇴사 대신 이직 성공.'},
+{id:'S3',cat:'story',name:'PAS',f:'문제(Problem) → 문제를 더 아프게(Agitate) → 해결(Solution).',why:'고통을 느낀 뒤에 보여 준 해결책은 더 커 보입니다.',pro:'자극 단계에서 겁을 주지 말고 장면으로 공감시킵니다.',kid:'학부모 광고: 숙제 앞에서 우는 아이 → 매일 밤 반복 → 놀이처럼 바뀐 저녁.',ad:'잠 못 드는 밤 → 다음 날 회의에서 멍한 나 → 수면 오디오북 20분.'},
+{id:'S4',cat:'story',name:'떡밥과 회수',f:'초반에 작은 물건이나 말을 심고, 끝에서 다시 쓴다.',why:'회수되는 순간 <아!> 하는 쾌감이 생깁니다. 체호프의 총이라 불리는 원칙입니다.',pro:'심을 때는 자연스럽게 지나가야 합니다. 대놓고 강조하면 예측됩니다.',kid:'처음에 지나가듯 나온 <날 일(日)> 스티커가 마지막 문제의 답.',ad:'초반 책상 위 읽다 만 책 한 권이, 마지막에 <완독> 도장과 함께 다시 등장.'},
+{id:'S5',cat:'story',name:'루프 엔딩',f:'마지막 장면이 첫 장면으로 자연스럽게 이어지게 만든다.',why:'짧은 영상에서 반복 재생이 일어나 완주율과 재생 수가 오릅니다.',pro:'마지막 문장을 첫 문장의 앞부분이 되게 쓰면 이음매가 사라집니다.',kid:'끝: <그래서 토끼가 처음 배운 한자는…> → 처음: <달 월(月)!>',ad:'끝: <그래서 오늘도 이 문장으로 잠듭니다…> → 처음: 그 문장의 낭독.'},
+{id:'S6',cat:'story',name:'트레일러 3막과 버튼',f:'세계 소개 → 갈등 몽타주가 음악과 함께 고조 → 제목 → 마지막 한 방(버튼).',why:'영화 예고편의 표준 구조입니다. 제목 뒤의 짧은 유머나 반전이 기억에 남습니다.',pro:'버튼은 1~3초면 충분하고, 분위기를 살짝 비틀어야 합니다.',kid:'북트레일러 끝, 제목 뒤에 주인공 강아지가 하품하며 <다음 장은 내일!>.',ad:'신간 북트레일러: 세계 → 갈등 몽타주 → 제목 → 저자 한마디로 버튼.'},
+{id:'S7',cat:'story',name:'피크-엔드',f:'가장 강한 한 장면과 끝 장면에 공을 들인다.',why:'사람은 경험 전체보다 정점과 끝을 기억한다는 연구가 있습니다(피크-엔드 법칙).',pro:'중간이 조금 느슨해도 정점과 끝이 강하면 좋은 영상으로 기억됩니다. 끝을 흐지부지 끝내지 마세요.',kid:'한자 동요의 후렴 정점에 율동 클로즈업, 끝은 아이가 따라 부르는 컷.',ad:'전자책 소개 영상의 정점은 <밑줄 공유> 장면, 끝은 실제 독자 후기 한 줄.'},
+// THUMB
+{id:'T1',cat:'thumb',name:'한 화면 한 메시지',f:'요소는 3개 이하. 얼굴, 대상, 글자 중 무엇이 주인공인지 하나로 정한다.',why:'피드에서는 1초 안에 판단됩니다. 요소가 많으면 아무것도 안 읽힙니다.',pro:'썸네일을 흑백으로 바꿔도 주인공이 읽히는지 확인합니다.',kid:'큰 한자 하나 + 놀란 캐릭터 얼굴 + 세 단어.',ad:'책 표지 하나 + 놀란 표정 하나 + <회사에서 못 듣는 얘기>.'},
+{id:'T2',cat:'thumb',name:'감정 얼굴과 시선',f:'과장된 감정의 얼굴, 그리고 그 시선이 핵심 대상을 향하게 한다.',why:'사람은 얼굴을 가장 빨리 알아보고, 남의 시선을 따라 봅니다.',pro:'시선 방향은 강력한 화살표입니다. 얼굴이 카메라를 보면 시청자와, 대상을 보면 대상에 주목이 갑니다.',kid:'캐릭터가 눈을 크게 뜨고 한자 쪽을 바라보는 구도.',ad:'책을 들고 놀란 얼굴, 시선은 표지의 핵심 문장 쪽.'},
+{id:'T3',cat:'thumb',name:'썸네일·제목 역할 분담',f:'썸네일은 감정과 상황, 제목은 정보. 같은 말을 반복하지 않는다.',why:'둘이 다른 정보를 주면 합쳐서 호기심이 커집니다.',pro:'썸네일 글자와 제목 문구가 겹치면 공간 낭비입니다.',kid:'썸네일 <이게 한자라고?!> / 제목 <그림에서 태어난 한자 5개>.',ad:'썸네일 <이 책 읽고 퇴사 안 함> / 제목 <번아웃 직장인이 3번 읽은 책>.'},
+{id:'T4',cat:'thumb',name:'결과 직전',f:'결과가 나오기 직전의 순간이나 가려진 결과를 보여 준다.',why:'답이 보이기 직전이 가장 궁금합니다.',pro:'가림이나 화살표는 하나만. 여러 개면 낚시처럼 보입니다.',kid:'반쯤 완성된 한자 그림, 나머지는 물음표.',ad:'밑줄 그은 문장의 마지막 단어만 가림.'},
+{id:'T5',cat:'thumb',name:'작은 화면 테스트',f:'썸네일을 휴대폰 피드 크기로 줄여서 확인한다.',why:'대부분 작은 화면에서 봅니다. 큰 모니터에서만 예쁜 썸네일은 실패합니다.',pro:'폭 120px 정도로 줄여도 글자와 얼굴이 읽혀야 합니다(2026 트렌드 자료).',kid:'한자 획이 가늘면 작게 줄였을 때 사라집니다. 굵은 서체로.',ad:'표지 글자가 작은 책은 썸네일용으로 제목만 다시 크게 얹기.'},
+{id:'T6',cat:'thumb',name:'고대비 3색',f:'어두운 배경 + 강한 강조색 1개 + 흰 글자처럼 3색 안에서 대비를 최대로.',why:'피드에서 대비가 강한 것이 먼저 눈에 띕니다.',pro:'교육·어린이 콘텐츠는 원색이 많아지기 쉬운데, 강조색은 하나만 남깁니다.',kid:'남색 배경 + 노란 한자 + 흰 글자.',ad:'짙은 남색 배경 + 형광 노랑 핵심어 + 흰 글자, 표지는 작게.'},
+{id:'T7',cat:'thumb',name:'비포 · 애프터',f:'화면을 둘로 나눠 변화 전후를 보여 준다.',why:'변화의 크기가 한눈에 보이고, 과정이 궁금해집니다.',pro:'전후 차이가 작으면 오히려 실망을 줍니다. 차이가 가장 큰 순간을 고릅니다.',kid:'왼쪽 빈 받아쓰기 / 오른쪽 100점 시험지.',ad:'왼쪽 쌓인 안 읽은 책 / 오른쪽 오디오북 완독 목록 화면.'},
+// COPY
+{id:'C1',cat:'copy',name:'구체성',f:'<많이>, <쉽게> 대신 숫자, 고유명사, 장면으로 쓴다.',why:'구체적인 말은 믿게 하고 머릿속에 그림을 그립니다.',pro:'반올림한 숫자보다 정확한 숫자(<3분>보다 <2분 40초>)가 더 믿음직합니다.',kid:'<한자가 쉬워져요> → <하루 5분, 2주에 한자 50개>.',ad:'<독서 습관> 대신 <출퇴근 52분, 한 달 3권>.'},
+{id:'C2',cat:'copy',name:'2인칭',f:'<우리>, <여러분>보다 <너>, <당신>에게 말한다.',why:'한 사람에게 말할 때 듣는 사람은 자기 얘기로 듣습니다.',pro:'어린이 대상은 반말 2인칭이 자연스럽고, 학부모 대상은 존댓말 2인칭.',kid:'<너도 한자 마법사가 될 수 있어.>',ad:'<당신의 퇴근길이 서재가 됩니다.>'},
+{id:'C3',cat:'copy',name:'대조 리듬',f:'반대되는 두 말을 짧게 맞붙인다.',why:'대비는 기억에 남고 리듬이 생깁니다.',pro:'앞뒤 글자 수를 비슷하게 맞추면 운율이 생깁니다.',kid:'<그림으로 보고, 노래로 외운다.>',ad:'<손은 운전대에, 귀는 책에.>'},
+{id:'C4',cat:'copy',name:'3의 법칙',f:'중요한 말은 세 개로 묶는다.',why:'셋은 완결된 느낌을 주는 최소 단위입니다.',pro:'세 번째에 반전이나 가장 강한 말을 둡니다.',kid:'<보고, 듣고, 마법처럼 기억해.>',ad:'<듣고, 걷고, 생각이 정리된다.>'},
+{id:'C5',cat:'copy',name:'반직관',f:'상식과 반대되는 결과를 앞세운다.',why:'예상과 다르면 이유가 궁금해집니다.',pro:'반직관은 근거가 있을 때만 씁니다. 근거 없으면 낚시가 됩니다.',kid:'<한자는 외우지 마세요. 그림으로 보세요.>',ad:'<책을 끝까지 읽지 마세요. 필요한 장만 들으세요.>'},
+{id:'C6',cat:'copy',name:'감각어',f:'보이고, 들리고, 만져지는 단어를 쓴다.',why:'감각어는 읽는 순간 장면을 재생시킵니다.',pro:'형용사보다 동사와 의성어가 강합니다. 대표님의 사운드 강점과 바로 이어집니다.',kid:'<쏴아아, 비 우(雨)가 쏟아진다.>',ad:'<사각, 첫 장이 넘어가는 소리.>'},
+// COLOR
+{id:'K1',cat:'color',name:'보색 대비',f:'피부톤의 주황과 배경의 청록처럼 보색을 마주 세운다.',why:'보색은 서로를 더 선명하게 만들어 주인공을 떼어 냅니다. 블록버스터 색보정에서 흔히 쓰는 조합입니다.',pro:'보색은 넓게 깔면 촌스럽고, 주인공과 배경에 나눠 줘야 세련됩니다.',kid:'따뜻한 주황 캐릭터 + 차분한 청록 배경.',ad:'따뜻한 스탠드 불빛의 사람 + 청록빛 밤 창밖.'},
+{id:'K2',cat:'color',name:'60-30-10',f:'주조색 60, 보조색 30, 강조색 10의 비율.',why:'디자인과 인테리어에서 널리 쓰는 비율로, 정돈돼 보이면서 포인트가 삽니다.',pro:'강조색 10은 시선을 보낼 곳에만 씁니다. 버튼, 핵심 단어, 결과.',kid:'크림 배경 60, 하늘색 30, 빨간 한자 10.',ad:'오프화이트 60, 짙은 남색 30, 브랜드 강조색 10.'},
+{id:'K3',cat:'color',name:'채도는 나이',f:'채도가 높을수록 어리고 즐겁게, 낮을수록 성숙하고 고급스럽게 보인다.',why:'어린이 제품은 원색, 프리미엄 브랜드는 저채도와 뉴트럴을 쓰는 관행이 강합니다.',pro:'학부모를 설득할 때는 아이용이어도 채도를 한 단계 낮추면 신뢰감이 오릅니다.',kid:'아이용 영상은 원색, 학부모 광고는 같은 색의 톤 다운 버전.',ad:'2040 대상은 저채도·뉴트럴이 기본. 강조색만 한 단계 채도 높게.'},
+{id:'K4',cat:'color',name:'색온도는 감정',f:'따뜻한 빛은 친밀함과 향수, 차가운 빛은 긴장과 미래를 만든다.',why:'촛불, 노을 같은 기억과 연결됩니다.',pro:'한 영상 안에서 색온도를 바꾸면 감정 전환을 말 없이 알릴 수 있습니다.',kid:'수면 오디오북 영상은 점점 따뜻하고 어둡게.',ad:'아침 루틴 영상은 차갑고 맑게, 수면 영상은 따뜻하고 어둡게.'},
+{id:'K5',cat:'color',name:'색으로 말하기',f:'인물, 세계, 감정마다 색을 정해 이야기와 함께 바꾼다.',why:'관객은 의식하지 않아도 색 변화를 이야기로 읽습니다. 오징어 게임의 분홍 대 초록이 좋은 예입니다.',pro:'색을 정했으면 끝까지 지킵니다. 규칙이 깨질 때가 반전입니다.',kid:'불 화(火) 친구는 빨강, 물 수(水) 친구는 파랑. 둘이 만나면 보라.',ad:'일하는 나는 회색, 책 속의 나는 따뜻한 색. 마지막에 둘이 섞임.'},
+{id:'K6',cat:'color',name:'명도가 먼저',f:'색보다 밝기 차이로 먼저 구분되게 만든다.',why:'작은 화면과 색약 시청자에게도 읽힙니다.',pro:'흑백으로 바꿨을 때 글자와 배경이 붙어 보이면 실패입니다.',kid:'노란 글자를 흰 배경에 두지 않기.',ad:'표지 위 글자는 반드시 밝기 대비로 분리. 색만 다르면 안 읽힘.'},
+{id:'K7',cat:'color',name:'팔레트 고정',f:'채널이나 시리즈의 색을 3~4개로 고정한다.',why:'반복 노출된 색이 곧 브랜드 기억이 됩니다.',pro:'썸네일 한 귀퉁이에 같은 색 띠만 있어도 시리즈로 알아봅니다.',kid:'마법한자 시리즈 = 남색, 금색, 크림.',ad:'SP 오디오북 시리즈 = 남색, 오프화이트, 금색.'},
+// LIGHT
+{id:'L1',cat:'light',name:'3점 조명',f:'주광(키), 보조광(필), 뒤에서 비추는 역광(백) 세 개.',why:'얼굴의 입체와 배경 분리를 동시에 얻는 기본 조명입니다.',pro:'보조광을 줄일수록 드라마틱, 키울수록 밝고 친근해집니다.',kid:'키즈 콘텐츠는 보조광을 넉넉히 해 그림자를 줄입니다.',ad:'저자 인터뷰는 보조광을 줄여 차분하고 무게 있게.'},
+{id:'L2',cat:'light',name:'하이키 · 로우키',f:'밝고 그림자 적은 하이키, 어둡고 대비 큰 로우키.',why:'하이키는 코미디·광고·키즈, 로우키는 스릴러·느와르의 문법입니다.',pro:'장르 문법을 일부러 섞으면 개성이 됩니다. 귀여운 캐릭터를 로우키로 찍으면 웃깁니다.',kid:'한자 미스터리 편만 로우키로 바꿔 분위기 전환.',ad:'자기계발서는 하이키, 스릴러·에세이는 로우키 북트레일러.'},
+{id:'L3',cat:'light',name:'렘브란트 조명',f:'45도 위에서 비춰 그늘진 뺨에 작은 빛의 삼각형을 만든다.',why:'얼굴에 깊이와 진지함이 생깁니다.',pro:'인터뷰, 저자 소개 영상에서 신뢰와 무게감을 줍니다.',kid:'북트레일러 저자 코멘트 컷.',ad:'저자 소개 컷, 출판사 대표 인터뷰.'},
+{id:'L4',cat:'light',name:'역광 림라이트',f:'피사체 뒤에서 빛을 줘 윤곽에 빛 테두리를 만든다.',why:'배경에서 주인공을 떼어 내고 특별해 보이게 합니다.',pro:'창가 자연광으로도 만들 수 있습니다. 노출은 얼굴에 맞춥니다.',kid:'책을 펼칠 때 책 뒤에서 빛이 새어 나오는 연출.',ad:'창가 역광 속 책 읽는 실루엣으로 감성 컷.'},
+{id:'L5',cat:'light',name:'앵글의 힘',f:'아래에서 올려 찍으면 강해 보이고, 위에서 내려 찍으면 작고 귀여워 보인다.',why:'우리가 실제로 큰 사람, 작은 아이를 보는 시점과 같습니다.',pro:'아이 눈높이로 찍으면 아이 시점의 공감이 생깁니다.',kid:'한자 괴물은 로우앵글, 아이 주인공은 눈높이.',ad:'로우앵글로 쌓인 책 탑, 하이앵글로 침대 위 휴대폰과 이어폰.'},
+{id:'L6',cat:'light',name:'대칭과 3분할',f:'정중앙 대칭은 연출된 세계, 3분할 배치는 자연스러운 현실.',why:'웨스 앤더슨식 대칭은 동화 같은 세계를 만듭니다.',pro:'대칭 구도에서 하나만 어긋나게 두면 그곳에 시선이 갑니다.',kid:'동화 오프닝은 대칭, 일상 장면은 3분할.',ad:'책장 정면 대칭으로 <정돈된 삶>, 카페 3분할로 <일상>.'},
+// EDIT
+{id:'E1',cat:'edit',name:'J컷 · L컷',f:'다음 장면 소리가 먼저 들리거나(J), 앞 장면 소리가 이어진다(L).',why:'컷이 끊기지 않고 흐르는 느낌을 줍니다.',pro:'J컷은 기대를, L컷은 여운을 만듭니다.',kid:'다음 장의 빗소리가 먼저 들리고 장면 전환.',ad:'다음 장면의 성우 목소리가 먼저 들리며 지하철에서 책 장면으로.'},
+{id:'E2',cat:'edit',name:'박자에 컷',f:'음악의 강박에 컷을 맞춘다.',why:'리듬이 맞으면 보는 사람이 편하고 몰입합니다.',pro:'모든 박자에 자르면 지칩니다. 프레이즈 단위로 자르고, 강조할 때만 박자마다.',kid:'동요 후렴의 강박마다 한자 하나씩 등장.',ad:'북트레일러 음악 강박마다 핵심 문장 한 줄씩.'},
+{id:'E3',cat:'edit',name:'컷 길이 변주',f:'짧게-짧게-길게처럼 컷 길이에 리듬 변화를 준다.',why:'같은 길이가 반복되면 단조로워집니다. 음악의 리듬 변주와 같습니다.',pro:'강조하고 싶은 장면 앞의 컷을 짧게 몰아 주면 긴 컷이 더 무겁게 느껴집니다.',kid:'퀴즈 힌트 컷은 빠르게, 정답 공개는 길게.',ad:'고민 장면 짧게 몰아치고, 책의 한 문장은 길게 머물기.'},
+{id:'E4',cat:'edit',name:'매치컷',f:'모양이나 움직임이 비슷한 두 장면을 잇는다.',why:'시간과 공간을 한 번에 넘으면서도 매끄럽습니다. 2001 스페이스 오디세이의 뼈와 우주선이 유명합니다.',pro:'모양, 색, 움직임 방향 중 하나만 맞아도 매치컷이 됩니다.',kid:'산 모양 그림 → 뫼 산(山) 한자로 매치컷.',ad:'지하철 창문 → 책 페이지 모양 매치컷.'},
+{id:'E5',cat:'edit',name:'쿨레쇼프 효과',f:'같은 장면도 앞뒤에 무엇을 붙이느냐로 의미가 바뀐다.',why:'관객은 이어진 컷들을 연결해 감정을 만들어 냅니다.',pro:'무표정 컷 하나로 슬픔도, 배고픔도 만들 수 있습니다. 표정보다 붙이는 컷이 중요합니다.',kid:'같은 캐릭터 얼굴 뒤에 시험지 / 케이크를 붙여 보기.',ad:'같은 무표정 뒤에 밤 11시 메일 알림 / 책 한 문장을 붙여 보기.'},
+{id:'E6',cat:'edit',name:'펀치인',f:'같은 샷을 확대해 강조한다.',why:'추가 촬영 없이 리듬과 강조를 만듭니다.',pro:'말의 핵심 단어에 맞춰 확대하고, 남발하면 효과가 사라집니다.',kid:'<바로 이 획!>에서 한자 획으로 확대.',ad:'<바로 이 문장>에서 밑줄로 확대.'},
+{id:'E7',cat:'edit',name:'핵심 단어만 강조',f:'자막은 전체가 아니라 핵심 단어 하나만 색이나 크기로 키운다.',why:'모두 강조하면 아무것도 강조되지 않습니다.',pro:'강조 단어는 문장당 하나, 색은 팔레트의 강조색으로.',kid:'<쉴 휴> 중 <휴>만 노란색.',ad:'자막 <번아웃은 게으름이 아니다> 중 <게으름이 아니다>만 강조.'},
+// SOUND
+{id:'A1',cat:'sound',name:'사운드 로고',f:'1~3초의 고유한 소리를 매번 같은 자리에 넣는다.',why:'반복된 짧은 소리는 화면보다 오래 기억됩니다. 넷플릭스 시작음이 대표적입니다.',pro:'음 3~5개, 악기 하나면 충분합니다. 멜로디보다 음색이 기억됩니다.',kid:'마법한자 시작마다 같은 반짝 소리.',ad:'SP 오디오북 시작마다 같은 3음 피아노 시그니처.'},
+{id:'A2',cat:'sound',name:'빌드업과 드롭',f:'긴장을 쌓다가 정점 직전에 멈추고, 한 번에 터뜨린다.',why:'예측과 해소가 쾌감을 만듭니다. 영화 예고편의 묵직한 저음 효과도 같은 원리입니다.',pro:'드롭 직전 0.5~1초의 침묵이 드롭을 두 배로 크게 만듭니다.',kid:'정답 공개 직전 북소리 → 멈춤 → <짠!>.',ad:'북트레일러 제목 직전 1초 침묵 → 저음 히트와 제목.'},
+{id:'A3',cat:'sound',name:'목소리 우선 믹싱',f:'내레이션이 있을 때 음악은 목소리 대역을 비워 준다.',why:'말이 안 들리면 이탈합니다.',pro:'음악 볼륨만 줄이지 말고 목소리 주파수 대역을 깎아(EQ) 공간을 만듭니다.',kid:'오디오북 홍보 쇼츠: 성우 목소리가 음악 위에 또렷하게.',ad:'오디오북 홍보 쇼츠, 음악은 목소리 대역을 비워 성우를 앞으로.'},
+{id:'A4',cat:'sound',name:'반복 멜로디 훅',f:'짧고 반복되는 멜로디에 동작을 붙인다.',why:'따라 부르기 쉽고, 몸이 기억합니다. 아기상어가 대표적입니다.',pro:'음역은 좁게, 리듬은 단순하게, 가사는 반복되게.',kid:'한자 이름과 뜻을 2마디 멜로디로 반복.',ad:'브랜드 릴스에 4마디 반복 루프 음악으로 시리즈 정체성.'},
+{id:'A5',cat:'sound',name:'전환 효과음',f:'장면 전환마다 휙, 뿅 같은 짧은 효과음을 넣는다.',why:'주의가 흩어지는 순간을 다시 붙잡습니다.',pro:'같은 효과음을 계속 쓰면 소음이 됩니다. 2~3종을 번갈아.',kid:'한자가 바뀔 때마다 종이 넘기는 소리.',ad:'장면 전환에 책장 넘기는 소리를 시그니처 효과음으로.'},
+// PSY
+{id:'P1',cat:'psy',name:'호기심 갭',f:'아는 것과 알고 싶은 것 사이의 작은 빈칸을 만든다.',why:'정보의 빈칸을 채우고 싶은 욕구가 행동을 만든다는 이론입니다(정보 갭 이론).',pro:'빈칸이 너무 크면 포기하고, 너무 작으면 안 궁금합니다. 거의 알 것 같은 정도가 최적입니다.',kid:'한자 반쪽만 보여 주고 <나머지 반쪽은?>',ad:'<이 책의 마지막 문장은 첫 문장과 같습니다. 왜일까요?>'},
+{id:'P2',cat:'psy',name:'사회적 증거',f:'다른 사람들이 이미 하고 있다는 것을 보여 준다.',why:'불확실할 때 사람은 남을 따라 합니다.',pro:'숫자보다 비슷한 사람의 장면이 강합니다. 우리 아이 또래가 하는 모습.',kid:'또래 아이들이 따라 부르는 컷.',ad:'실제 독자들의 밑줄 사진 모음, <이번 주 가장 많이 저장된 문장>.'},
+{id:'P3',cat:'psy',name:'정체성',f:'<이런 사람이라면>으로 보는 사람의 자아상을 건드린다.',why:'사람은 자기가 되고 싶은 모습과 맞는 것을 고릅니다.',pro:'아이에게는 <마법사>, <탐정> 같은 역할을 줍니다.',kid:'<오늘부터 너는 한자 탐정.>',ad:'<퇴근 후에도 성장하는 사람들의 루틴.>'},
+{id:'P4',cat:'psy',name:'감정이 정보를 이긴다',f:'설명보다 느끼게 한다.',why:'광고 효과 연구에서 감정형 광고가 장기 효과가 크다는 결과가 알려져 있습니다.',pro:'정보는 감정 다음에. 먼저 웃기거나 뭉클하게 만들고 정보를 얹습니다.',kid:'한자 지식보다 먼저 캐릭터의 작은 슬픔이나 기쁨.',ad:'스펙보다 먼저, 퇴근길에 울컥했던 한 문장.'},
+{id:'P5',cat:'psy',name:'귀여움 반응',f:'큰 눈, 둥근 얼굴, 짧은 팔다리.',why:'아기 같은 특징에 보호 본능이 반응합니다(베이비 스키마).',pro:'눈 위치를 얼굴 아래쪽으로 내리면 더 어려 보입니다.',kid:'한자 캐릭터 디자인의 기본 비율.',ad:'2040에도 통합니다. 반려동물, 아기, 작은 캐릭터 굿즈가 저장과 공유를 부릅니다.'},
+{id:'P6',cat:'psy',name:'참여시키기',f:'따라 하게, 맞히게, 고르게 만든다.',why:'직접 참여한 것에 더 애착을 갖습니다.',pro:'질문 후 2초 멈춤을 주면 아이가 실제로 답을 외칩니다.',kid:'<3초 안에 맞혀 봐! 3, 2, 1.>',ad:'<당신의 인생책 한 줄을 댓글로.> 참여가 곧 알고리즘 신호.'},
+{id:'P7',cat:'psy',name:'반복 노출',f:'같은 캐릭터, 소리, 색을 계속 보여 준다.',why:'자주 본 것에 호감이 생깁니다(단순 노출 효과).',pro:'반복은 형식에, 변화는 내용에. 매번 같은 오프닝, 매번 다른 이야기.',kid:'매 편 같은 캐릭터 인사와 사운드 로고.',ad:'매주 같은 요일, 같은 오프닝의 <금요일 밤 한 문장> 시리즈.'}
+];
+const CASES=[
+ {t:'올드 스파이스 <The Man Your Man Could Smell Like>',y:'2010 · 광고',what:'한 남자가 카메라를 보며 말하는 동안 한 번도 끊지 않고 욕실, 보트, 말 위로 장면이 바뀝니다.',why:'시청자를 직접 부르는 화법, 과장된 유머, 원테이크처럼 보이는 연속 전환이 계속 예상을 깹니다.',steal:'한 컷 안에서 세계가 바뀌는 연출, 직접 호명.',codes:['H4','H2','C2']},
+ {t:'<Dumb Ways to Die>',y:'2012 · 멜버른 지하철 안전 캠페인',what:'귀여운 캐릭터들이 황당하게 다치는 장면에 중독성 있는 노래를 붙였습니다.',why:'무서운 안전 메시지를 귀여움과 노래로 바꿔 거부감 없이 퍼지게 했습니다.',steal:'딱딱한 교육 메시지를 노래와 캐릭터로 감싸기.',codes:['A4','P5','P4']},
+ {t:'볼보 트럭 <Epic Split>',y:'2013 · 광고',what:'장 클로드 반담이 후진하는 두 트럭 사이에서 다리를 찢습니다.',why:'제품 성능(정밀한 조향)을 말로 설명하지 않고 극단적인 한 장면으로 증명했습니다.',steal:'장점을 말하지 말고, 믿기 어려운 장면으로 보여 주기.',codes:['H1','P4']},
+ {t:'도브 <Real Beauty Sketches>',y:'2013 · 광고',what:'몽타주 화가가 본인의 설명과 타인의 설명으로 같은 사람을 각각 그립니다.',why:'<사람은 자기를 실제보다 낮게 본다>는 통찰을 실험으로 보여 줘 감정을 움직였습니다.',steal:'통찰 하나를 실험 구조로 보여 주기.',codes:['P4','T7','S4']},
+ {t:'애플 <1984>',y:'1984 · 슈퍼볼 광고',what:'제품을 거의 보여 주지 않고 획일화된 세계를 깨는 한 사람의 이야기를 보여 줬습니다.',why:'제품 대신 세계관과 적을 보여 줘 브랜드를 하나의 태도로 만들었습니다.',steal:'기능 대신 무엇에 맞서는지를 보여 주기.',codes:['P3','S6']},
+ {t:'핑크퐁 <아기상어>',y:'2016 · 동요 영상',what:'짧은 반복 멜로디와 율동, 원색 화면.',why:'따라 부르고 따라 하기 쉬운 구조가 전 세계로 퍼져 유튜브 역대 최다 조회 영상 기록을 세웠습니다.',steal:'좁은 음역, 반복 가사, 동작 결합.',codes:['A4','P6','P7']},
+ {t:'<오징어 게임>',y:'2021 · 드라마',what:'어릴 때 하던 놀이에 목숨을 건 설정, 분홍 경비원과 초록 체육복, 동그라미·세모·네모 기호.',why:'동심과 잔혹함의 대비, 단순한 기호와 강한 색이 밈과 패러디를 쉽게 만들었습니다.',steal:'단순한 기호와 색을 정해 따라 만들기 쉽게 하기.',codes:['K5','K1','K7']},
+ {t:'충주시 공식 유튜브',y:'2019~ · 공공기관 채널',what:'딱딱할 거라 예상되는 시청 홍보를 B급 유머와 밈으로 만들었습니다.',why:'<공공기관인데 이렇게까지?>라는 기대 위반이 공유를 만들었습니다.',steal:'내 분야의 당연한 톤을 뒤집기. 출판사 홍보가 웃기면 그 자체로 화제.',codes:['H2','C5']},
+ {t:'픽사 <업> 오프닝',y:'2009 · 애니메이션',what:'대사 없이 음악과 장면만으로 한 부부의 평생을 몇 분 만에 보여 줍니다.',why:'반복되는 음악 주제와 작은 행동의 반복·변주로 감정을 압축했습니다.',steal:'음악 주제 하나를 반복·변주해 시간의 흐름을 말 없이 전달하기. 대표님의 작곡 강점과 직결.',codes:['A1','S7','E3']},
+ {t:'웨스 앤더슨 스타일',y:'2014 <그랜드 부다페스트 호텔> 등',what:'정면 대칭 구도, 파스텔 팔레트, 장면마다 정해진 색.',why:'한 장면만 봐도 누구 작품인지 알 수 있을 만큼 규칙이 일관돼, 일상 사진에서도 따라 하는 유행이 생겼습니다.',steal:'구도와 색의 규칙을 정하고 끝까지 지키기.',codes:['L6','K7','K2']},
+ {t:'영화 예고편의 묵직한 저음',y:'2010년대 이후 예고편',what:'<인셉션> 무렵부터 거대한 금관 저음 효과가 예고편의 표준처럼 퍼졌습니다.',why:'소리 하나가 규모와 긴장을 즉시 전달합니다.',steal:'장르를 소리 하나로 알리는 시그니처 사운드.',codes:['A2','A1']},
+ {t:'MrBeast 썸네일 방식',y:'2020년대 · 유튜브',what:'과장된 표정, 한눈에 읽히는 단순한 상황, 여러 버전을 만들어 비교.',why:'피드에서 1초 안에 상황이 이해되고, 테스트로 계속 고쳐 나갑니다.',steal:'썸네일을 하나만 만들지 말고 여러 개 만들어 비교하기.',codes:['T2','T1','T4']}
+ ,{t:'배달의민족 B급 감성과 서체',y:'2010년대~ · 국내 브랜드',what:'<우리가 어떤 민족입니까> 같은 말장난 카피, 직접 만든 무료 서체, 배민신춘문예 같은 참여 이벤트.',why:'배달 앱이라는 기능을 <우리끼리 통하는 유머와 말투>라는 문화로 바꿔, 2030이 스스로 퍼뜨리게 했습니다.',steal:'브랜드 말투를 하나 정하고, 고객이 참여해 놀 판을 깔아 주기.',codes:['C3','P3','P6'],g:'2040'}
+ ,{t:'빙그레 <빙그레우스>',y:'2020 · 인스타그램 세계관 마케팅',what:'회사 공식 계정에 <빙그레 왕국의 왕자> 캐릭터를 세워 제품들을 세계관 속 이야기로 풀었습니다.',why:'오래된 식품 회사를 2030이 댓글로 노는 세계관으로 바꿔 친근함과 화제를 만들었습니다.',steal:'오래되고 딱딱한 분야일수록 캐릭터와 세계관이 효과적. 출판사 홍보에 그대로 대입 가능.',codes:['P3','P7','H2'],g:'2040'}
+ ,{t:'토스의 쉬운 말',y:'2010년대 후반~ · 핀테크',what:'어려운 금융 용어를 짧고 쉬운 말로 바꾼 화면 문구와 광고.',why:'금융이 어렵고 귀찮다는 2040의 불편을 <쉽다>는 경험으로 바꿔 신뢰를 만들었습니다.',steal:'업계 용어를 고객의 말로 번역하기. <EPUB 3.0> 대신 <글자 크기를 바꿔도 깨지지 않는 전자책>.',codes:['C1','C2'],g:'2040'}
+ ,{t:'오늘의집 집들이',y:'2010년대 후반~ · 리빙 플랫폼',what:'실제 사람들의 집 사진과 집들이 글이 그대로 콘텐츠이자 상품 진열대가 됐습니다.',why:'광고 사진보다 <나와 비슷한 사람의 진짜 집>이 믿음직하고 따라 하고 싶습니다.',steal:'고객의 실제 사용 장면을 콘텐츠로. 독자의 <나의 오디오북 듣는 자리> 사진 모으기.',codes:['P2','P6'],g:'2040'}
+ ,{t:'애플 <Shot on iPhone>',y:'2015~ · 광고 캠페인',what:'실제 사용자가 아이폰으로 찍은 사진을 옥외광고와 영상으로 썼습니다.',why:'제품 성능을 사용자의 결과물로 증명하고, 참여자에게 자부심을 줬습니다.',steal:'<SP로 만든 오디오북>이 아니라 <SP 오디오북을 들은 사람의 하루>를 보여 주기.',codes:['P2','H1'],g:'2040'}
+ ,{t:'당근 <당신 근처의>',y:'2010년대 후반~ · 지역 기반 서비스',what:'이웃, 동네, 따뜻한 거래라는 정서를 브랜드 이름과 말투에 담았습니다.',why:'중고거래의 불신을 <이웃>이라는 관계로 바꿔 2040의 생활 앱이 됐습니다.',steal:'거래를 관계로 바꾸는 단어 하나. 출판사 영업이라면 <외주사>가 아니라 <디지털 출판 파트너>.',codes:['P3','C2'],g:'2040'}
+
+];
+const BORROW=[
+ ['게임','레벨업, 진행 바, 즉시 보상','성장이 눈에 보이면 계속하고 싶어집니다','한자 10개마다 칭호가 바뀌는 시리즈, 화면 위 진행 바'],
+ ['먹방 · ASMR','클로즈업 소리, 느린 속도','감각 자극 자체가 보상이 됩니다','수면 오디오북에 종이, 빗소리 클로즈업 사운드'],
+ ['서바이벌 예능','탈락 긴장, 카운트다운','결과를 모르는 긴장이 끝까지 붙잡습니다','한자 퀴즈 쇼츠에 3초 카운트다운과 탈락 효과음'],
+ ['스포츠 중계','슬로모션 리플레이와 해설','결정적 순간을 다시 보며 이해합니다','한자 획순을 느린 리플레이와 해설로'],
+ ['언박싱','기대 지연, 하나씩 공개','열기 직전이 가장 설렙니다','신간 북트레일러: 책 상자를 여는 손, 한 장씩 넘김'],
+ ['메이크오버','비포·애프터, 과정 압축','변화의 크기가 쾌감입니다','흑백 그림책 장면이 소리와 함께 색으로 채워짐'],
+ ['추리 · 미스터리','단서 제시, 추리, 반전','스스로 맞히고 싶은 욕구','한자 어원 탐정: 그림 단서 셋으로 한자 맞히기'],
+ ['K팝 챌린지','짧은 안무 포인트, 따라 하기','따라 해서 올리며 퍼집니다','한자 동요 후렴에 손동작 하나'],
+ ['다큐 내레이션','낮은 목소리, 사실의 무게','믿음과 몰입을 줍니다','인문서 북트레일러에 다큐 톤 내레이션'],
+ ['요리 레시피 영상','위에서 찍은 빠른 진행, 재료 숫자','과정이 빠르고 명확해 끝까지 봅니다','만들기 활동 영상: 위에서 찍은 손, 준비물 3개'],
+ ['영화 예고편','3막과 버튼','제목 뒤 마지막 한 방이 기억에 남습니다','오디오북 홍보 쇼츠 끝에 1초 유머 컷'],
+ ['스탠드업 코미디','설정 - 펀치라인, 콜백','앞에서 한 말을 다시 쓰면 큰 웃음','동화 영상 초반 대사를 마지막에 다시 쓰기'],
+ ['뉴스 속보','자막 바, 긴박한 리듬','지금 알아야 할 것 같은 느낌','<속보! 한자 나라에 비 우(雨)가 쏟아졌습니다>'],
+ ['뮤직비디오','컷을 박자에, 색 테마 전환','음악과 화면이 맞을 때 몰입','동요 영상의 절마다 색 테마 바꾸기']
+];
+const TARGETS=['직장인 대상 오디오북 홍보 쇼츠','수면 오디오북 릴스','신간 북트레일러','전자책 소개 영상','출판사 대상 서비스 소개 영상','SP미디어텍 브랜드 인스타 릴스','마법한자 학부모 광고'];
+const AGES=[
+ ['영유아 (0~4세)','반복, 노래, 동작, 큰 눈의 캐릭터, 정면 얼굴','느린 속도, 원색, 단순한 배경, 짧은 단위','보는 건 아이, 고르는 건 부모. 썸네일과 제목은 부모가 안심할 정보(교육, 안전)로'],
+ ['유아 (5~7세)','이야기와 캐릭터 애착, 따라 하기, 몸 개그','한 화면에 한 가지, 반복되는 오프닝','같은 캐릭터를 꾸준히. 무서운 장면은 짧게'],
+ ['초등 (8~12세)','도전, 게임, 순위, 반전, 친구에게 자랑할 지식','빠른 템포, 효과음, 자막 강조','또래 유행과 밈에 민감. 어린애 취급하면 이탈'],
+ ['10대','정체성, 진정성, 밈, 음악 트렌드','매우 빠름, 꾸미지 않은 화면도 통함','광고 티가 나면 바로 넘김. 말투와 속도가 핵심'],
+ ['20~30대','공감, 자기계발, 감각적인 화면, 효율','정보 밀도 높게, 세련된 색','시간이 아까운 사람들. 첫 3초에 얻을 것을 약속'],
+ ['30~40대 부모','아이의 성장, 시간 절약, 전문가 신뢰, 육아 공감','설명이 명확하고 차분한 톤','결정권자이자 구매자. 효과와 근거, 다른 부모의 반응'],
+ ['50대 이상','정보, 건강, 향수, 신뢰','큰 자막, 천천히, 또렷한 내레이션','과장보다 진정성. 실제 사람의 얼굴과 목소리']
+];
+
+const DEEP=[
+ ['20대 초중반 (대학생·사회초년생)','진로, 첫 월급, 나다움','<나만 알고 싶은>, <요즘 애들>, 솔직함','밈, 챌린지, 짧고 빠른 릴스','<첫 월급으로 산 인생책> 시리즈, 취업 준비생 오디오북 큐레이션'],
+ ['20대 후반~30대 초 (직장인 3~7년차)','번아웃, 이직, 재테크, 자기계발','<퇴근 후>, <루틴>, 구체적 숫자','루틴 브이로그, 정보 요약 카드뉴스','출퇴근 오디오북, <퇴근 후 20분> 수면 오디오북'],
+ ['30대 중후반 (관리자·신혼·초보 부모)','시간 부족, 육아 시작, 커리어 정체','<시간 절약>, <검증된>, <대신 해 드림>','짧은 해결형 영상, 비포·애프터','육아 중 귀로 읽는 책, 아이와 함께 듣는 오디오북'],
+ ['40대 (관리자·학부모·자영업)','아이 교육, 건강, 노후, 사업 성장','<전문가가>, <효과>, 진정성','차분한 설명형, 인터뷰, 사례','마법한자 학부모 대상, 출판사 대표 대상 B2B 서비스 영상']];
+const MOTIVES=[
+ ['시간 절약','2040의 가장 귀한 자원은 시간. <몇 분 만에>가 곧 가치.','<이동 시간이 독서 시간이 됩니다.>'],
+ ['성장과 자기계발','<어제보다 나은 나>에 돈을 씁니다.','<한 달에 4권, 귀로 끝내는 자기계발.>'],
+ ['취향과 정체성','무엇을 쓰는지가 곧 나. 남들과 다른 선택을 원합니다.','<베스트셀러 말고, 당신의 다음 책.>'],
+ ['불안 해소','커리어, 돈, 건강, 육아 불안을 덜어 주는 것에 반응.','<잠 못 드는 밤을 위한 20분.>'],
+ ['힐링과 보상','지친 하루의 작은 사치. 가격보다 기분.','<오늘 수고한 나에게 들려주는 책.>'],
+ ['진정성','광고 티를 싫어하고 실제 사람의 경험을 믿습니다.','진짜 독자의 밑줄과 후기를 그대로.'],
+ ['함께 즐기기','공유하고 댓글로 노는 판이 있으면 스스로 퍼뜨립니다.','<당신의 인생 문장을 남겨 주세요.>']];
+const TRENDS=[
+ {t:'썸네일은 다시 얼굴 중심',d:'감정이 뚜렷한 얼굴 썸네일이 금융, 기술, DIY 등 대부분의 분야에서 우세해졌다는 분석입니다. 2025년엔 사물 중심이 통하던 분야도 얼굴 쪽으로 옮겨 갔다고 합니다.',lv:'관찰 기반, 표본 수치 비공개',src:['1of10 (2026)','https://1of10.com/blog/youtube-thumbnail-trends-2026/']},
+ {t:'썸네일 글자는 줄고, 교육은 예외',d:'엔터테인먼트, 게임, 리액션은 글자가 거의 없는 썸네일이 많아졌습니다. 반면 교육, 튜토리얼, 금융처럼 정보가 중요한 분야는 여전히 글자가 필요하다고 합니다. 마법한자 같은 교육 콘텐츠는 짧은 글자를 유지하세요.',lv:'관찰 기반',src:['1of10 (2026)','https://1of10.com/blog/youtube-thumbnail-trends-2026/']},
+ {t:'고대비 3색과 네온 강조',d:'어두운 남색이나 검정 배경에 네온 노랑이나 전기 파랑 강조색, 흰 글자를 쓰는 3색 팔레트가 주류이고, 파스텔과 복잡한 그라데이션은 피하는 흐름입니다.',lv:'관찰 기반',src:['1of10 (2026)','https://1of10.com/blog/youtube-thumbnail-trends-2026/']},
+ {t:'작게 줄여도 읽히는가',d:'대부분 모바일에서 보기 때문에 폭 약 120px에서도 읽히는지가 기준입니다. 미세한 디테일과 은은한 톤은 사라집니다.',lv:'관찰 기반, 모바일 비중 수치 없음',src:['1of10 (2026)','https://1of10.com/blog/youtube-thumbnail-trends-2026/']},
+ {t:'AI로 여러 버전 만들어 테스트',d:'AI 썸네일과 사람이 만든 썸네일의 품질 차이가 거의 없어졌다는 주장과 함께, 여러 버전을 빠르게 만들어 유튜브 스튜디오의 A/B 테스트로 비교하는 방식이 소개됩니다.',lv:'주장, 성과 수치 없음',src:['1of10 (2026)','https://1of10.com/blog/youtube-thumbnail-trends-2026/']},
+ {t:'2026 올해의 색: 클라우드 댄서',d:'팬톤이 2026 올해의 색으로 차분한 오프화이트 PANTONE 11-4201 Cloud Dancer를 발표했습니다. 시끄러운 세상 속 고요와 여백이라는 의미로 소개됐습니다. 수면 오디오북, 프리미엄 북트레일러의 여백 톤에 참고할 만합니다.',lv:'공식 발표 보도',src:['GMA 보도','https://www.goodmorningamerica.com/living/story/pantone-opts-simplicity-2026-color-year-choice-128113552']},
+ {t:'아직 확인하지 못한 것',d:'국내 숏폼(쇼츠·릴스) 2026 트렌드 보고서는 이번에 원문을 열지 못해 넣지 않았습니다. 다음 업데이트에서 채울 항목입니다.',lv:'미확인',src:null}
+];
+const SCEN=[
+ {q:'마법한자 쇼츠 첫 3초로 가장 좋은 것은?',o:['채널 로고와 인사','<안녕하세요, 오늘은 한자를 배워요>','아이가 한자를 그림처럼 읽어 내는 결과 장면','한자의 역사 설명'],a:2,e:'결과 먼저(H1). 인사와 로고는 첫 3초를 낭비합니다. 로고는 끝으로 보냅니다.'},
+ {q:'썸네일 글자가 <한자 마법>, 제목도 <한자 마법>입니다. 무엇이 문제인가요?',o:['글자가 너무 짧다','썸네일과 제목이 같은 정보를 반복한다','색이 없다','문제없다'],a:1,e:'역할 분담(T3). 썸네일은 감정과 상황, 제목은 정보를 맡아 서로 다른 말을 해야 호기심이 커집니다.'},
+ {q:'학부모 대상 광고에서 아이용 원색 화면을 그대로 쓰면 생기는 문제는?',o:['너무 고급스러워 보인다','유치해 보여 신뢰감이 떨어질 수 있다','아무 문제 없다','글자가 커진다'],a:1,e:'채도는 나이(K3). 결정권자가 부모라면 같은 색을 한 단계 톤 다운해 신뢰를 높입니다.'},
+ {q:'대본의 장면 사이가 <그리고 … 그리고 …>로만 이어집니다. 어떻게 고칠까요?',o:['장면을 더 넣는다','<그런데>와 <그래서>로 잇도록 원인과 갈등을 넣는다','음악을 크게 한다','자막을 늘린다'],a:1,e:'그런데·그래서 규칙(S1). <그리고>로 이어진 장면은 지루하거나 빼도 되는 장면입니다.'},
+ {q:'정답 공개 장면을 가장 크게 만드는 사운드 방법은?',o:['계속 같은 볼륨의 음악','공개 직전 0.5~1초 침묵 후 터뜨리기','효과음을 매 컷 넣기','음악 없이 말로만'],a:1,e:'빌드업과 드롭(A2). 직전의 침묵이 드롭을 훨씬 크게 느끼게 합니다.'},
+ {q:'시청 지속 그래프에서 20초 지점에 큰 이탈이 있습니다. 가장 먼저 볼 것은?',o:['썸네일 색','20초 직전 장면이 <그리고>로 늘어지는지, 약속한 보상이 늦어지는지','채널 이름','업로드 시간'],a:1,e:'이탈 지점이 곧 고칠 곳입니다. 직전 장면의 긴장과 약속 이행을 점검합니다.'},
+ {q:'자막에서 모든 문장을 노란색 큰 글씨로 강조했습니다. 결과는?',o:['더 잘 읽힌다','아무것도 강조되지 않는다','고급스러워진다','이탈이 준다'],a:1,e:'핵심 단어만 강조(E7). 문장당 강조 단어 하나가 원칙입니다.'},
+ {q:'한자 동요가 널리 따라 불리게 하려면 가장 중요한 것은?',o:['넓은 음역의 화려한 멜로디','짧고 좁은 음역의 반복 멜로디와 동작','긴 전주','복잡한 화성'],a:1,e:'반복 멜로디 훅(A4). 아기상어처럼 따라 부르고 따라 하기 쉬워야 퍼집니다.'},
+ {q:'유아 대상 콘텐츠의 썸네일과 제목은 누구를 설득해야 하나요?',o:['아이만','부모','출판사','알고리즘'],a:1,e:'영유아는 보는 사람과 고르는 사람이 다릅니다. 부모가 안심할 정보를 담습니다.'},
+ {q:'<한자는 외우지 마세요> 같은 반직관 카피를 쓸 때 조건은?',o:['짧으면 된다','근거가 실제로 있을 때만','항상 써도 된다','숫자가 있어야 한다'],a:1,e:'반직관(C5)은 근거가 있어야 합니다. 근거 없으면 낚시가 되어 신뢰를 잃습니다.'},
+ {q:'캐릭터를 더 어리고 귀엽게 보이게 하는 디자인 조정은?',o:['눈을 작게','눈 위치를 얼굴 아래쪽으로, 얼굴을 둥글게','팔다리를 길게','각진 얼굴'],a:1,e:'귀여움 반응(P5). 큰 눈, 낮은 눈 위치, 둥근 얼굴, 짧은 팔다리가 베이비 스키마입니다.'},
+ {q:'짧은 영상의 반복 재생을 늘리는 구조는?',o:['끝에 긴 크레딧','마지막 장면이 첫 장면으로 이어지는 루프','끝에 다른 영상 추천 말하기','페이드아웃'],a:1,e:'루프 엔딩(S5). 마지막 문장을 첫 문장의 앞부분으로 쓰면 이음매가 사라집니다.'},
+ {q:'북트레일러에서 저자 코멘트 컷에 무게와 신뢰를 주는 조명은?',o:['위에서 내리쬐는 형광등','렘브란트 조명','완전한 역광','플래시 정면광'],a:1,e:'렘브란트 조명(L3). 그늘진 뺨의 빛 삼각형이 깊이와 진지함을 줍니다.'},
+ {q:'같은 캐릭터 무표정 컷 뒤에 시험지를 붙이면 걱정, 케이크를 붙이면 기대로 보입니다. 이 원리는?',o:['매치컷','쿨레쇼프 효과','J컷','펀치인'],a:1,e:'쿨레쇼프 효과(E5). 붙이는 컷이 감정을 만듭니다.'},
+ {q:'시리즈 썸네일을 한눈에 알아보게 하는 가장 싼 방법은?',o:['매번 새 색','팔레트 3~4색 고정과 같은 위치의 색 띠','더 많은 글자','더 큰 로고'],a:1,e:'팔레트 고정(K7). 반복 노출된 색이 곧 브랜드 기억이 됩니다.'},
+ {q:'<엄마들 이거 보세요>보다 멈추게 하는 첫 문장은?',o:['<여러분 안녕하세요>','<초2 받아쓰기 걱정인 엄마, 이거 하나만>','<오늘의 영상>','<좋아요 눌러 주세요>'],a:1,e:'직접 호명(H4). 대상이 구체적일수록 <내 얘기>로 듣습니다.'},
+ {q:'예고편 구조에서 <버튼>은 어디에 오나요?',o:['맨 앞','제목이 나온 뒤 마지막 1~3초','중간','없다'],a:1,e:'트레일러 3막과 버튼(S6). 제목 뒤 짧은 유머나 반전이 기억에 남습니다.'},
+ {q:'수면 오디오북 영상의 색 흐름으로 맞는 것은?',o:['점점 밝고 차갑게','점점 따뜻하고 어둡게','네온 고대비 유지','빠르게 색 바꾸기'],a:1,e:'색온도는 감정(K4). 잠들 준비는 따뜻하고 어두운 쪽으로 흐르게 합니다.'},
+ {q:'퀴즈 쇼츠에서 아이가 실제로 답을 외치게 하는 편집 디테일은?',o:['질문 직후 바로 정답','질문 후 2초 정도 멈춤과 카운트다운','질문을 자막으로만','배경음악을 키우기'],a:1,e:'참여시키기(P6). 멈춤이 있어야 참여가 일어납니다.'},
+ {q:'광고에서 정보보다 먼저 둘 것은?',o:['가격','감정(웃음이나 뭉클함)','회사 연혁','상세 스펙'],a:1,e:'감정이 정보를 이긴다(P4). 감정 다음에 정보를 얹습니다.'}
+ ,{q:'30대 직장인 대상 오디오북 광고의 첫 문장으로 가장 좋은 것은?',o:['<오디오북을 소개합니다>','<출퇴근 52분, 이번 달 책 3권 끝냈어요>','<책을 많이 읽읍시다>','<최신 기술로 만든 오디오북>'],a:1,e:'구체성(C1)과 직접 호명. 2040에게는 시간과 숫자로 된 결과가 가장 강합니다.'}
+ ,{q:'2040 대상 브랜드 색 설계의 기본으로 맞는 것은?',o:['원색 여러 개','저채도·뉴트럴 바탕에 강조색 하나','형광색 전체','무지개 그라데이션'],a:1,e:'채도는 나이(K3)와 60-30-10(K2). 성숙하고 신뢰감 있게, 강조는 한 곳에.'}
+ ,{q:'출판사 대표에게 <EPUB 3.0 제작>을 설명하는 가장 좋은 말은?',o:['<EPUB 3.0 표준 준수>','<글자 크기를 바꿔도 깨지지 않고 소리도 넣을 수 있는 전자책>','<최신 포맷>','<기술 문서 첨부>'],a:1,e:'토스의 쉬운 말 사례. 업계 용어를 고객의 말로 번역합니다.'}
+ ,{q:'2040이 광고를 넘기는 가장 흔한 이유는?',o:['화질이 낮아서','광고 티가 나고 진정성이 없어서','자막이 있어서','길이가 30초라서'],a:1,e:'진정성 동기. 실제 사람의 경험과 장면이 광고 문구보다 강합니다.'}
+ ,{q:'오래되고 딱딱한 이미지의 분야(예: 출판)를 2030에게 화제로 만든 국내 사례의 방식은?',o:['할인 쿠폰 남발','캐릭터와 세계관을 세워 이야기로 풀기','긴 회사 소개 영상','유명인 사진만 반복'],a:1,e:'빙그레우스 사례. 딱딱한 분야일수록 세계관과 캐릭터가 효과적입니다.'}
+ ,{q:'수면 오디오북 릴스의 타깃을 가장 잘 좁힌 문장은?',o:['<모두를 위한 수면>','<새벽 2시에도 회의 생각나는 3년차 직장인에게>','<잠은 중요해요>','<힐링 콘텐츠>'],a:1,e:'직접 호명(H4). 생활 단계와 불안을 콕 집을수록 멈춥니다.'}
+ ,{q:'2040 고객이 스스로 콘텐츠를 퍼뜨리게 하는 장치는?',o:['댓글 차단','참여할 판(인생 문장 남기기, 밑줄 공유)을 깔아 주기','더 긴 설명','로고 크게'],a:1,e:'참여시키기(P6)와 배민·오늘의집 사례. 고객이 놀 판을 만들면 스스로 퍼뜨립니다.'}
+ ,{q:'북트레일러 끝에 제목이 나온 뒤 넣을 것으로 가장 좋은 것은?',o:['출판사 연혁','저자의 짧은 한마디나 반전 한 줄(버튼)','긴 크레딧','검은 화면'],a:1,e:'트레일러 3막과 버튼(S6). 제목 뒤의 1~3초가 기억에 남습니다.'}
+
+];
+// ---------- visuals (원리 도식, 직접 그린 예시) ----------
+const W=320,H=150;
+const sv=(inner,label)=>`<svg class="viz" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label||'도식'}">${inner}</svg>`;
+const T=(x,y,s,cls,anchor)=>`<text x="${x}" y="${y}" class="${cls||'vt'}" text-anchor="${anchor||'middle'}">${s}</text>`;
+const R=(x,y,w,h,cls,rx)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx==null?4:rx}" class="${cls}"/>`;
+const C=(x,y,r,cls)=>`<circle cx="${x}" cy="${y}" r="${r}" class="${cls}"/>`;
+const L=(x1,y1,x2,y2,cls)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cls||'vs'}"/>`;
+const P=(d,cls)=>`<path d="${d}" class="${cls||'vs'}"/>`;
+const ARW='<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="fa"/></marker></defs>';
+const A=(x1,y1,x2,y2,cls)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="${cls||'va'}" marker-end="url(#ah)"/>`;
+function face(x,y,r,mood,cls){const e=r*.28;let m='';if(mood==='wow')m=C(x,y+r*.38,r*.18,'fi');else if(mood==='sad')m=P(`M${x-r*.3},${y+r*.5} Q${x},${y+r*.25} ${x+r*.3},${y+r*.5}`,'vsi');else m=P(`M${x-r*.3},${y+r*.3} Q${x},${y+r*.6} ${x+r*.3},${y+r*.3}`,'vsi');
+ return C(x,y,r,cls||'fam')+C(x-e,y-r*.15,r*.11,'fi')+C(x+e,y-r*.15,r*.11,'fi')+m}
+function thumbFrame(inner,x,y,w,h,dark){return R(x||40,y||12,w||240,h||126,dark?'fdk':'fpp',6)+inner}
+const VIZ={
+ timeline:()=>sv(R(20,60,70,30,'fac')+T(55,80,'결과','vtw')+R(92,60,210,30,'fln')+T(197,80,'과정 (어떻게 됐을까?)')+L(20,100,90,100,'vsa')+T(55,116,'0~3초','vts')+T(160,40,'결과를 먼저, 이유는 뒤로','vtb'),'결과 먼저 타임라인'),
+ interrupt:()=>sv(P('M20,95 L70,95 L80,30 L92,120 L104,60 L112,95 L300,95','vsa')+T(86,22,'0초: 예상 깨기','vtb')+T(220,85,'평범한 흐름이었다면 넘김','vts'),'패턴 인터럽트'),
+ gap:()=>sv(R(30,50,170,26,'fac')+T(115,68,'아는 것','vtw')+R(200,50,30,26,'fdash')+T(215,96,'빈칸','vtb')+R(230,50,60,26,'fln')+T(160,30,'거의 알 것 같은 만큼만 비우기','vt')+T(160,128,'빈칸이 크면 포기, 없으면 안 궁금','vts'),'호기심 갭'),
+ target:()=>sv(C(160,75,55,'fln')+C(160,75,36,'fpp')+C(160,75,18,'fac')+T(160,79,'1명','vtw')+T(60,30,'모두에게','vts')+T(160,145,'한 사람에게 말할수록 멈춘다','vts'),'타깃 좁히기'),
+ scale:()=>sv(R(80,30,60,90,'fam')+T(110,138,'잃는 것','vts')+R(180,65,60,55,'fac')+T(210,138,'얻는 것','vts')+T(110,24,'더 크게 느낌','vtb'),'손실 회피'),
+ three:()=>sv(R(30,70,70,50,'fln')+T(65,100,'1')+R(110,60,80,60,'fln')+T(150,95,'2')+R(200,35,95,85,'fac')+T(247,85,'3 · 가장 강하게','vtw')+T(160,24,'약속한 숫자, 마지막이 정점','vts'),'숫자 약속'),
+ jcut:()=>sv(T(28,48,'화면','vts','start')+R(70,36,120,22,'fln')+T(130,51,'장면 A')+R(190,36,110,22,'fln')+T(245,51,'장면 B')+T(28,98,'소리','vts','start')+R(70,86,90,22,'fln')+T(115,101,'A 소리')+R(160,86,140,22,'fac')+T(230,101,'B 소리가 먼저','vtw')+L(190,28,190,120,'vsd')+T(160,138,'소리가 화면보다 먼저 들어오는 J컷','vts'),'J컷'),
+ storyline:()=>sv(R(10,55,80,40,'fln')+T(50,79,'상황')+T(110,70,'그런데','vtb')+A(92,80,128,80)+R(130,55,80,40,'fln')+T(170,79,'갈등')+T(230,70,'그래서','vtb')+A(212,80,238,80)+R(240,55,70,40,'fac')+T(275,79,'결과','vtw')+T(160,130,'<그리고>로 이어지면 지루한 장면','vts'),'그런데 그래서'),
+ spine:()=>{let s='';const st=['옛날에','매일','어느 날','그 때문에','그 때문에','마침내','그 뒤로'];st.forEach((t,i)=>{const x=8+i*44;s+=R(x,55,40,40,i===2||i===5?'fac':'fln')+T(x+20,79,t,i===2||i===5?'vtw2':'vt2')});return sv(s+T(160,128,'7칸을 먼저 채우면 1분짜리도 이야기가 된다','vts'),'스토리 스파인')},
+ pas:()=>sv(P('M20,40 Q80,40 110,95 Q140,135 170,110 Q230,60 300,30','vsa')+T(40,30,'문제','vtb')+T(130,140,'더 아프게','vtb')+T(285,22,'해결','vtb'),'PAS 곡선'),
+ setup:()=>sv(L(20,100,300,100,'vs')+C(60,100,8,'fam')+T(60,125,'심기','vtb')+C(270,100,8,'fac')+T(270,125,'회수 <아!>','vtb')+P('M60,90 Q165,10 270,90','vsd')+T(165,40,'자연스럽게 지나가야 예측 안 됨','vts'),'떡밥과 회수'),
+ loop:()=>sv(P('M110,75 A50,50 0 1 1 210,75','vsa')+P('M210,75 A50,50 0 1 1 110,75','vsd')+T(110,80,'처음','vtb')+T(210,80,'끝','vtb')+T(160,140,'끝 문장이 첫 문장 앞부분이 되게','vts'),'루프 엔딩'),
+ trailer:()=>{let s=R(10,90,70,20,'fln')+T(45,104,'1막 세계','vt2');for(let i=0;i<6;i++)s+=R(86+i*20,90-i*10,16,20+i*10,'fln');s+=T(140,140,'2막 고조 몽타주','vts')+R(212,40,55,70,'fdk')+T(239,79,'제목','vtw')+R(272,70,40,40,'fac')+T(292,94,'버튼','vtw');return sv(s,'트레일러 구조')},
+ peak:()=>sv(P('M20,110 L70,90 L110,100 L160,30 L200,95 L250,85 L300,60','vsa')+C(160,30,7,'fam')+T(160,20,'정점','vtb')+C(300,60,7,'fac')+T(290,50,'끝','vtb','end')+T(100,135,'중간보다 정점과 끝이 기억된다','vts'),'피크 엔드'),
+ face:()=>sv(thumbFrame(face(110,75,40,'wow')+R(170,40,90,26,'fam',3)+T(215,58,'세 단어','vtw')+R(175,80,70,40,'fpp',3)+T(210,104,'대상','vt2'),40,12,240,126,true)+T(160,146,'요소 3개: 얼굴 · 대상 · 짧은 글자','vts'),'썸네일 3요소'),
+ gaze:()=>sv(thumbFrame(face(90,75,36,'wow')+A(125,68,190,68,'vaw')+R(195,40,70,60,'fam',4)+T(230,75,'핵심','vtw'),40,12,240,126,true)+T(160,146,'시선이 화살표가 된다','vts'),'시선 유도'),
+ title:()=>sv(thumbFrame(face(100,55,28,'wow')+R(150,35,100,26,'fam',3)+T(200,53,'이게 된다고?','vtw'),40,6,240,90,true)+R(40,104,240,14,'fln',2)+T(45,115,'제목: 정보 · 숫자 · 대상','vt2','start')+R(40,122,150,10,'fln',2)+T(160,146,'썸네일은 감정, 제목은 정보','vts'),'썸네일과 제목'),
+ blur:()=>sv(thumbFrame(R(70,35,80,80,'fpp',4)+R(150,35,80,80,'fdash',4)+T(190,85,'?','vtqw')+face(255,100,16,'wow'),40,12,240,126,true)+T(160,146,'결과 직전, 가림은 하나만','vts'),'결과 직전'),
+ small:()=>sv(thumbFrame(face(95,65,30,'wow')+R(140,45,110,30,'fam',3)+T(195,65,'큰 글자','vtw'),20,20,180,110,true)+R(220,70,64,36,'fdk',3)+C(238,88,9,'fam')+R(250,82,28,10,'fam',2)+T(252,124,'실제 피드 크기','vts')+T(160,146,'작게 줄여도 읽히는가','vts'),'작은 화면 테스트'),
+ contrast:()=>sv(R(40,12,240,126,'',6).replace('class=""','style="fill:#141b3a"')+`<text x="160" y="72" text-anchor="middle" style="font:900 34px var(--display);fill:#f6e72b">핵심어</text><text x="160" y="104" text-anchor="middle" style="font:500 14px var(--body);fill:#ffffff">흰 글자 보조 문구</text>`+T(160,146,'어두운 배경 + 강조색 1 + 흰색','vts'),'고대비 3색'),
+ split:()=>sv(R(40,12,120,126,'fln',6)+T(100,70,'전','vtb')+T(100,92,'쌓인 안 읽은 책','vts')+R(160,12,120,126,'fac',6)+T(220,70,'후','vtw')+T(220,92,'완독 목록','vtw2')+L(160,12,160,138,'vsw'),'비포 애프터'),
+ palette:(p)=>{const cs=p.c,ls=p.l||[];let s='';const w=280/cs.length;cs.forEach((c,i)=>{s+=`<rect x="${20+i*w}" y="28" width="${w-6}" height="74" rx="5" style="fill:${c}"/>`+T(20+i*w+(w-6)/2,120,ls[i]||c,'vts')});return sv(s+(p.cap?T(160,18,p.cap,'vtb'):''),'팔레트')},
+ ratio:()=>sv(`<rect x="20" y="45" width="168" height="50" rx="4" style="fill:#f1ede4"/><rect x="188" y="45" width="84" height="50" style="fill:#243a6b"/><rect x="272" y="45" width="28" height="50" rx="4" style="fill:#e0a526"/>`+T(104,75,'60 주조색','vt')+`<text x="230" y="75" text-anchor="middle" style="font:500 12px var(--body);fill:#fff">30 보조</text>`+T(286,118,'10 강조','vtb')+T(160,30,'강조색은 시선 보낼 곳에만','vts'),'60 30 10'),
+ sat:()=>sv(['#ff3b30','#ffcc00','#34c759','#007aff'].map((c,i)=>`<rect x="${20+i*34}" y="35" width="30" height="60" rx="4" style="fill:${c}"/>`).join('')+['#b9776e','#c7b27a','#83a08a','#6f86a6'].map((c,i)=>`<rect x="${174+i*34}" y="35" width="30" height="60" rx="4" style="fill:${c}"/>`).join('')+T(85,115,'고채도: 어리고 신나게','vts')+T(240,115,'저채도: 성숙하고 고급스럽게','vts'),'채도와 나이'),
+ temp:()=>sv(`<defs><linearGradient id="tg" x1="0" x2="1"><stop offset="0" stop-color="#ff9a3c"/><stop offset=".5" stop-color="#f3ede2"/><stop offset="1" stop-color="#3c7bd6"/></linearGradient></defs><rect x="20" y="40" width="280" height="44" rx="6" fill="url(#tg)"/>`+T(40,105,'따뜻함: 친밀 · 향수 · 휴식','vts','start')+T(300,105,'차가움: 긴장 · 미래 · 집중','vts','end')+T(160,28,'색온도로 감정 전환을 말 없이','vtb'),'색온도'),
+ value:()=>sv(`<rect x="30" y="30" width="120" height="70" rx="5" style="fill:#ffffff;stroke:#ccc"/><text x="90" y="72" text-anchor="middle" style="font:700 18px var(--body);fill:#f2d22e">노란 글자</text><rect x="170" y="30" width="120" height="70" rx="5" style="fill:#1d2a55"/><text x="230" y="72" text-anchor="middle" style="font:700 18px var(--body);fill:#f2d22e">노란 글자</text>`+T(90,120,'밝기가 비슷 → 안 읽힘','vts')+T(230,120,'밝기 차이 큼 → 읽힘','vts'),'명도 대비'),
+ light3:()=>sv(C(160,70,16,'fln')+T(160,74,'인물','vt2')+R(150,118,20,14,'fdk',2)+T(160,146,'카메라','vts')+C(80,110,9,'fam')+T(80,135,'키(주광)','vts')+A(88,104,146,80,'vsa')+C(250,110,9,'fac')+T(250,135,'필(보조)','vts')+A(242,104,174,80,'vsd')+C(200,18,9,'fam')+T(240,20,'백(역광)','vts')+A(194,24,170,56,'vsa'),'3점 조명'),
+ key:()=>sv(R(20,15,135,105,'fpp',6)+face(87,65,26,'smile','fln')+T(87,138,'하이키: 밝고 가볍게','vts')+R(165,15,135,105,'fdk',6)+`<path d="M232,39 a26,26 0 0,0 0,52 z" class="fam"/>`+T(232,138,'로우키: 어둡고 긴장','vts'),'하이키 로우키'),
+ rembrandt:()=>sv(`<ellipse cx="160" cy="72" rx="42" ry="54" class="fln"/><path d="M160,18 a42,54 0 0,1 0,108 z" style="fill:#2a2f38"/><path d="M168,70 L188,70 L172,92 z" class="fam"/>`+T(160,140,'그늘진 뺨의 빛 삼각형','vts')+A(70,40,118,60,'vsa')+T(60,32,'45도 위 주광','vts'),'렘브란트 조명'),
+ rim:()=>sv(R(40,12,240,126,'fdk',6)+`<ellipse cx="160" cy="70" rx="30" ry="36" style="fill:#0c0e12;stroke:#ffd27a;stroke-width:3"/><path d="M110,138 Q160,95 210,138 z" style="fill:#0c0e12;stroke:#ffd27a;stroke-width:3"/>`+T(160,30,'뒤에서 빛 → 윤곽선','vtw'),'림라이트'),
+ angle:()=>sv(R(150,40,20,70,'fln',8)+C(160,32,10,'fln')+R(40,110,22,14,'fdk',2)+A(60,112,148,50,'vsa')+T(50,138,'로우앵글: 강하게','vts')+R(258,20,22,14,'fdk',2)+A(258,30,172,70,'vsd')+T(270,52,'하이앵글: 작고 귀엽게','vts'),'앵글'),
+ symm:()=>sv(R(20,20,130,90,'fpp',4)+L(85,20,85,110,'vsd')+R(70,45,30,50,'fac',3)+T(85,128,'대칭: 연출된 세계','vts')+R(170,20,130,90,'fpp',4)+L(213,20,213,110,'vsd')+L(257,20,257,110,'vsd')+L(170,50,300,50,'vsd')+L(170,80,300,80,'vsd')+C(257,50,10,'fac')+T(235,128,'3분할: 자연스러운 현실','vts'),'대칭과 3분할'),
+ beat:()=>{let s='';for(let i=0;i<28;i++){const h=i%4===0?60:20+((i*37)%25);s+=R(14+i*10.5,90-h/2,6,h,i%4===0?'fac':'fln',2)}for(let i=0;i<7;i++)s+=L(14+i*42+3,20,14+i*42+3,130,'vsd');return sv(s+T(160,145,'강박(진한 막대)에 컷','vts'),'박자 컷')},
+ rhythm:()=>sv(R(20,60,30,30,'fln')+R(54,60,30,30,'fln')+R(88,60,30,30,'fln')+R(122,60,170,30,'fac')+T(207,80,'긴 컷이 무거워진다','vtw')+T(70,108,'짧게 · 짧게 · 짧게','vts')+T(160,30,'컷 길이도 리듬처럼 변주','vtb'),'컷 리듬'),
+ match:()=>sv(R(20,25,120,90,'fpp',4)+C(80,70,26,'fam')+T(80,132,'둥근 달','vts')+A(146,70,174,70)+R(180,25,120,90,'fpp',4)+C(240,70,26,'fln')+T(240,75,'시계','vt2')+T(240,132,'같은 모양으로 장면 점프','vts'),'매치컷'),
+ kuleshov:()=>sv(face(60,70,26,'smile','fln')+A(92,55,150,35)+A(92,85,150,105)+R(155,18,70,34,'fln')+T(190,40,'밤 11시 메일','vt2')+T(270,40,'→ 걱정','vtb')+R(155,88,70,34,'fln')+T(190,110,'케이크','vt2')+T(270,110,'→ 기대','vtb')+T(60,130,'같은 무표정','vts'),'쿨레쇼프'),
+ punch:()=>sv(R(20,25,130,90,'fpp',4)+face(85,70,24,'smile','fln')+A(156,70,170,70)+R(175,25,130,90,'fpp',4)+face(240,80,44,'wow','fln')+T(160,138,'핵심 단어 순간에만 확대','vts'),'펀치인'),
+ caption:()=>sv(R(30,50,260,44,'fdk',6)+`<text x="160" y="78" text-anchor="middle" style="font:700 16px var(--body);fill:#fff">번아웃은 <tspan style="fill:#f6d22b">게으름이 아니다</tspan></text>`+T(160,120,'문장당 강조 단어는 하나','vts'),'핵심 단어 강조'),
+ soundlogo:()=>{let s='';for(let i=0;i<5;i++)s+=L(30,40+i*12,290,40+i*12,'vs');const n=[[90,76],[140,64],[190,52]];n.forEach(([x,y])=>{s+=`<ellipse cx="${x}" cy="${y}" rx="9" ry="6.5" class="fac" transform="rotate(-20 ${x} ${y})"/>`+L(x+8,y,x+8,y-36,'vsa')});return sv(s+T(160,128,'3음, 매번 같은 자리, 같은 음색','vts'),'사운드 로고')},
+ drop:()=>sv(P('M20,120 Q120,115 180,50','vsa')+R(182,40,30,90,'fdash')+T(197,30,'침묵','vtb')+R(214,12,20,118,'fam')+T(250,28,'드롭!','vtb','start')+T(90,138,'빌드업','vts'),'빌드업과 드롭'),
+ eq:()=>sv(L(20,120,300,120,'vs')+P('M20,60 Q80,55 110,62 Q140,110 175,110 Q205,110 230,62 Q270,55 300,62','vsa')+R(130,40,90,22,'fac',3)+T(175,56,'목소리 자리','vtw')+T(30,138,'저음','vts','start')+T(300,138,'고음','vts','end'),'EQ'),
+ melody:()=>{let s='';for(let i=0;i<5;i++)s+=L(20,40+i*12,300,40+i*12,'vs');const m=[[40,76],[66,64],[92,76],[118,64]];[0,140].forEach(o=>m.forEach(([x,y])=>{s+=`<ellipse cx="${x+o}" cy="${y}" rx="8" ry="6" class="${o?'fln':'fac'}"/>`}));return sv(s+P('M30,30 L30,24 L130,24 L130,30','vsd')+P('M170,30 L170,24 L270,24 L270,30','vsd')+T(80,18,'훅','vtb')+T(220,18,'반복','vtb')+T(160,128,'좁은 음역 · 짧게 · 반복 + 동작','vts'),'반복 멜로디')},
+ sfx:()=>sv(R(20,55,80,40,'fln')+R(120,55,80,40,'fln')+R(220,55,80,40,'fln')+T(110,45,'휙','vtb')+T(210,45,'사각','vtb')+T(160,125,'전환마다 짧은 소리, 2~3종 번갈아','vts'),'전환 효과음'),
+ crowd:()=>{let s='';for(let r=0;r<4;r++)for(let c=0;c<12;c++)s+=C(30+c*24,30+r*22,7,(r*12+c)%5===0?'fln':'fac');return sv(s+C(30+11*24,30+3*22,9,'fam')+T(160,140,'다른 사람들도 이미 한다','vts'),'사회적 증거')},
+ emotion:()=>sv(R(30,40,150,40,'fam')+T(105,65,'1. 감정 (웃음 · 뭉클)','vtw')+A(182,60,198,60)+R(200,40,90,40,'fln')+T(245,65,'2. 정보','vt')+T(160,110,'느낀 다음에 정보를 얹는다','vts'),'감정 먼저'),
+ cute:()=>sv(`<ellipse cx="90" cy="70" rx="28" ry="40" class="fln"/>`+C(80,58,4,'fi')+C(100,58,4,'fi')+T(90,132,'어른 비율','vts')+C(230,75,40,'fam')+C(216,82,9,'fi')+C(244,82,9,'fi')+T(230,132,'큰 눈 · 낮은 눈 · 둥근 얼굴','vts'),'귀여움 비율'),
+ countdown:()=>sv(C(70,70,30,'fln')+T(70,78,'3','vtq')+C(160,70,30,'fln')+T(160,78,'2','vtq')+C(250,70,30,'fac')+T(250,78,'1','vtqw')+T(160,132,'질문 뒤 멈춤이 있어야 답을 외친다','vts'),'참여 카운트다운'),
+ repeat:()=>{let s='';for(let i=0;i<5;i++){s+=R(16+i*60,35,52,70,'fpp',4)+R(22+i*60,41,40,10,'fac',2)+T(42+i*60,85,(i+1)+'화','vt2')}return sv(s+T(160,130,'같은 오프닝 · 같은 색 · 다른 이야기','vts'),'반복 노출')},
+ copy:()=>''
+};
+const VMAP={H1:'timeline',H2:'interrupt',H3:'gap',H4:'target',H5:'scale',H6:'three',H7:'jcut',S1:'storyline',S2:'spine',S3:'pas',S4:'setup',S5:'loop',S6:'trailer',S7:'peak',
+ T1:'face',T2:'gaze',T3:'title',T4:'blur',T5:'small',T6:'contrast',T7:'split',C1:'copy',C2:'copy',C3:'copy',C4:'copy',C5:'copy',C6:'copy',
+ K1:['palette',{c:['#e9894a','#f2c6a0','#2e7f86','#163f4a'],l:['피부 주황','하이라이트','청록','그림자'],cap:'보색을 주인공과 배경에 나눠'}],K2:'ratio',K3:'sat',K4:'temp',
+ K5:['palette',{c:['#e5427a','#f6a6c1','#1f8a5b','#a6d8b9'],l:['세계 A','A 밝게','세계 B','B 밝게'],cap:'세계마다 색을 정하고 끝까지 지킨다'}],K6:'value',
+ K7:['palette',{c:['#1f2f5c','#f4f1ea','#c9a24a'],l:['남색','오프화이트','금색'],cap:'시리즈 팔레트 고정 예'}],
+ L1:'light3',L2:'key',L3:'rembrandt',L4:'rim',L5:'angle',L6:'symm',E1:'jcut',E2:'beat',E3:'rhythm',E4:'match',E5:'kuleshov',E6:'punch',E7:'caption',
+ A1:'soundlogo',A2:'drop',A3:'eq',A4:'melody',A5:'sfx',P1:'gap',P2:'crowd',P3:'target',P4:'emotion',P5:'cute',P6:'countdown',P7:'repeat'};
+function vizFor(key,param,example){const k=Array.isArray(key)?key[0]:key;const p=Array.isArray(key)?key[1]:param;
+ if(k==='copy'||!VIZ[k])return `<div class="copyviz"><span>광고 카피 예</span><p>${esc(example||'')}</p></div>`;
+ try{return VIZ[k](p||{})}catch(e){return ''}}
+const CATQ={hook:'쇼츠 첫 3초 훅 예시',story:'광고 스토리텔링 사례',thumb:'유튜브 썸네일 잘 만든 예',copy:'광고 카피 명작',color:'영화 색감 color grading',light:'영화 조명 기법 lighting',edit:'영상 편집 기법',sound:'광고 사운드 디자인',psy:'마케팅 심리 광고 사례'};
+const yt=q=>'https://www.youtube.com/results?search_query='+encodeURIComponent(q);
+// ---------- 실제 영상 (직접 연결, 2026-11 확인) ----------
+// [유튜브 ID 또는 전체 URL, 제목, 볼 포인트]
+const VIDS={
+H1:[['https://www.youtube.com/@MrBeast','MrBeast 채널','어떤 영상이든 첫 5초에 상금, 결과, 판을 먼저 보여 줍니다.']],
+H2:[['ZUG9qYTJMsI','Dollar Shave Club <Our Blades Are F***ing Great> (2012)','첫 컷부터 대표가 정색하고 예상 밖의 말을 던집니다. 2만 달러로 찍은 바이럴 광고.']],
+H3:[['litXW91UauE','Dove <Real Beauty Sketches> (2013)','<두 그림은 어떻게 다를까?>라는 질문 하나로 끝까지 보게 만듭니다.']],
+H4:[['owGykVbfgUE','Old Spice <The Man Your Man Could Smell Like> (2010)','첫 마디가 <Hello, ladies>. 보는 사람을 직접 부릅니다.']],
+H5:[['wuP-H1_MzcU','Metro Trains <Dumb Ways to Die> (2012)','귀여운 노래로 <이러면 죽는다>는 손실을 경고합니다.']],
+H6:[['X_thEMO1nyU','GEICO <Unskippable> (2015)','<5초 뒤면 끝나니 건너뛸 필요 없다>는 시간 약속으로 시작합니다. 칸 그랑프리.']],
+H7:[['YoHD9XEInc0','<Inception> 공식 예고편 (2010)','화면보다 묵직한 저음 <브람>이 먼저 귀를 잡습니다.']],
+S1:[['j9jEg9uiLOU','South Park 제작자의 <But… Therefore…> 강의','<그리고>가 아니라 <그런데, 그래서>로 이으라는 원조 설명.']],
+S2:[['59akhsYfav0','Google <Parisian Love> (2010)','검색어만으로 만남 → 연애 → 결혼 → 아기까지 한 이야기를 만듭니다.']],
+S3:[['qgjjKGfWP54','Snickers <You\'re Not You When You\'re Hungry> (2010)','문제(배고파서 엉망) → 과장 → 한 입으로 해결. PAS의 교과서.']],
+S4:[['lq9d5M4Sii4','John Lewis <The Long Wait> (2011)','내내 선물을 기다리는 아이. 마지막에 떡밥이 뒤집혀 회수됩니다.']],
+S5:[['R5iAmwy7zgo','Zach King 매직 바인 모음','끝이 처음으로 이어지는 짧은 영상의 대표 사례.']],
+S6:[['oqxAJKy0ii4','<오징어 게임> 공식 예고편 (2021)','세계 소개 → 게임 몽타주 고조 → 제목 → 마지막 한 방.']],
+S7:[['AyYG0GGvErE','픽사 <업> <Married Life> 오프닝 (2009)','4분 안에 일생을 보여 주고 가장 강한 장면을 끝에 둡니다.']],
+T1:[['S8rdEImcLpg','Veritasium <Clickbait is Unreasonably Effective>','썸네일과 제목이 왜 클릭을 결정하는지 실험으로 보여 줍니다.']],
+T2:[['https://www.youtube.com/@MrBeast','MrBeast 채널 영상 목록','목록을 쭉 보며 얼굴 표정과 시선 방향만 관찰해 보세요.']],
+T3:[['S8rdEImcLpg','Veritasium <Clickbait is Unreasonably Effective>','썸네일과 제목의 역할 분담을 직접 이야기합니다.']],
+T4:[['M7FIvfx5J10','Volvo Trucks <The Epic Split> (2013)','다리를 다 벌리기 직전에 무슨 일이 생길지 끝까지 보게 됩니다.']],
+T5:[['dAR3d6xnG0o','Paddy Galloway <The NEW Rules Of YouTube>','MrBeast 전략가 출신이 말하는 클릭 설계.']],
+T7:[['a0-2h_wFo-0','Dove <Evolution> (2006)','평범한 얼굴이 광고판 얼굴이 되기까지, 전후 변화 그 자체.']],
+C1:[['6SUJNspeux8','스티브 잡스 아이팟 발표 <1,000 songs in your pocket> (2001)','<용량 5GB> 대신 <주머니 속 노래 1,000곡>.']],
+C2:[['WYP9AGtLvRg','Nike <Find Your Greatness> (2012)','내레이션이 처음부터 끝까지 <당신>에게 말합니다.']],
+C3:[['5rqgIMJnOlM','Apple <Think Different> (1997)','<누군가는 미쳤다고 하지만, 우리는 천재를 본다>. 대조 리듬.']],
+C4:[['5J-47F8Hrdw','스티브 잡스 아이폰 발표 (2007)','<아이팟, 전화기, 인터넷 기기. 세 개가 아니라 하나>. 3의 법칙.']],
+C5:[['P4x2EK-Zi5E','Burger King <Moldy Whopper> (2020)','자기 제품이 썩는 모습을 광고로. 방부제가 없다는 반직관 메시지.']],
+C6:[['bBNCmhjhIBE','M&S <This is not just food>','<녹아내리는>, <벨벳 같은>. 감각어만으로 군침이 돌게 만듭니다.']],
+K1:[['hEJnMQG9ev8','<Mad Max: Fury Road> 공식 예고편 (2015)','사막의 주황과 하늘의 청록. 보색 대비의 대표작.']],
+K2:[['GHJ7SMvfxoY','<The Grand Budapest Hotel> 예고편 (2014)','핑크와 보라를 주조색으로, 강조색은 아주 조금.']],
+K3:[['e_04ZrNroTo','CoComelon <Wheels on the Bus>','유아용 콘텐츠의 높은 채도와 밝은 원색.']],
+K4:[['anlrUiZvCfU','<Her> 예고편 (2013)','따뜻한 주황과 빨강으로 외로움과 친밀함을 동시에.']],
+K5:[['yRUAzGQ3nSY','<Inside Out> 공식 예고편 (2015)','감정마다 색이 정해져 있습니다. 기쁨은 노랑, 슬픔은 파랑.']],
+K7:[['8uaXAXmKFt8','<Barbie> 공식 예고편 (2023)','핑크 하나로 영화 전체와 마케팅까지 통일했습니다.']],
+L1:[['j_Sov3xmgwg','Filmmaking 101 <Three Point Lighting>','키, 필, 백 세 조명을 하나씩 켜며 보여 줍니다.']],
+L2:[['2ZqM2PpFrdw','<High Key vs Low Key Lighting in Film>','같은 장면이 밝기만으로 장르가 바뀌는 비교.']],
+L3:[['P5BHUknN-OE','The Film Lab <Rembrandt Lighting>','뺨의 빛 삼각형을 만드는 과정.']],
+L4:[['JmNBkL_jGlQ','<Backlight Separation>','역광 하나로 인물을 배경에서 떼어 내는 법.']],
+L5:[['wLfZL9PZI9k','StudioBinder <Ultimate Guide to Camera Angles>','로우, 하이, 더치 앵글이 주는 느낌을 영화 장면으로 설명.']],
+L6:[['https://vimeo.com/89302848','kogonada <Wes Anderson // Centered>','웨스 앤더슨 영화의 정중앙 구도만 모은 명작 슈퍼컷.']],
+E1:[['Ajr3D5hoziM','<Split Edit: J Cut and L Cut>','소리가 먼저 들어오고 늦게 빠지는 편집을 장면으로.']],
+E2:[['ZlfehmQekXs','<Baby Driver> 오프닝 (2017)','차 추격 장면 전체가 음악 박자에 맞춰 편집돼 있습니다.']],
+E3:[['3FOzD4Sfgag','Every Frame a Painting <Edgar Wright - How to Do Visual Comedy>','짧은 컷과 긴 컷의 리듬으로 웃기는 법.']],
+E4:[['U1UQKFGdTEU','<2001: A Space Odyssey> 뼈에서 위성으로 (1968)','영화사 최고의 매치컷. 수백만 년을 한 컷에 넘습니다.']],
+E5:[['96xx383lpiI','히치콕이 설명하는 쿨레쇼프 효과 (1964)','같은 얼굴이 다음 컷에 따라 친절한 노인도, 음흉한 노인도 됩니다.']],
+A1:[['4jHkN5y0rdY','Intel <Bong> 이야기','30년 넘게 같은 자리에 같은 다섯 음을 넣었습니다.'],['zKiPQsGfbjA','넷플릭스 <Ta-dum> 탄생 이야기','2초짜리 소리가 브랜드가 된 과정.']],
+A2:[['NNerJzj1kjU','Cadbury <Gorilla> (2007)','90초 동안 쌓다가 드럼 필인 한 번에 터뜨립니다.']],
+A3:[['A75rS9oXOeM','사이드체인으로 음악을 목소리 밑으로 낮추기','내레이션이 나올 때 음악이 자동으로 내려가는 원리.']],
+A4:[['9bZkp7q19f0','PSY <Gangnam Style> (2012)','짧은 반복 멜로디에 말춤을 붙였습니다. 따라 하기 쉬운 훅의 끝판왕.']],
+P1:[['ErwS24cBZPc','Apple <1984> 4K 복원판 (1984)','제품을 한 번도 안 보여 주고 <왜 1984년은 1984 같지 않을까>로 끝냅니다.']],
+P2:[['lr-mXnUoUXM','TED: 아이스 버킷 챌린지를 시작한 가족 이야기','남들이 다 하니까 나도 한다. 사회적 증거가 폭발한 사례.']],
+P3:[['WW2yKSt2C_A','Nike <Dream Crazy> (2018)','<이런 사람이라면>으로 보는 사람의 자아상을 정면으로 건드립니다.']],
+P4:[['QDRfGh83DPQ','Thai Life Insurance <Unsung Hero> (2014)','보험 설명은 한 줄도 없이 눈물만으로 기억에 남습니다.']],
+P5:[['NIF0Irnx4po','evian <Roller Babies> (2009)','아기 + 의외의 행동. 귀여움 반응을 극대화한 바이럴.']],
+P6:[['4uIsc70wCbA','핑크퐁 <Baby Shark Dance>','노래만이 아니라 손동작을 따라 하게 만들어 참여시킵니다.']],
+P7:[['X13N-Bx17Oc','Coca-Cola <Holidays Are Coming> (1995)','같은 트럭과 같은 노래를 30년 가까이 반복했습니다.']]
+};
+// 사례 탭: CASES 순서와 같음
+const CASEV=[
+['owGykVbfgUE','Old Spice <The Man Your Man Could Smell Like>'],
+['wuP-H1_MzcU','Metro Trains <Dumb Ways to Die>'],
+['M7FIvfx5J10','Volvo Trucks <The Epic Split>'],
+['litXW91UauE','Dove <Real Beauty Sketches>'],
+['ErwS24cBZPc','Apple <1984> 4K 복원판'],
+['4uIsc70wCbA','핑크퐁 <Baby Shark Dance>'],
+['oqxAJKy0ii4','<오징어 게임> 공식 예고편'],
+['https://www.youtube.com/@Chungjusi','충주시 공식 유튜브 채널'],
+['AyYG0GGvErE','픽사 <업> <Married Life>'],
+['https://vimeo.com/89302848','<Wes Anderson // Centered>'],
+['YoHD9XEInc0','<Inception> 공식 예고편'],
+['https://www.youtube.com/@MrBeast','MrBeast 채널'],
+['vxB02BYtWjc','배달의민족 2014 런칭 캠페인'],
+['RII-T8HNOAw','빙그레 <빙그레 메이커를 위하여>'],
+['D2-SKTk52EI','토스 <금융부터 바꾼다. 모든 것을 바꿀 때까지>'],
+['WY2Gk2B7bJk','오늘의집 <오늘 시작하는 인테리어>'],
+['XLzx58UrwGs','Apple Shot on iPhone <Glad I Met You>'],
+['EdPMvj1BAiY','당근 부동산 2025 브랜딩 캠페인']
+];
+const vidUrl=v=>/^https?:/.test(v)?v:'https://www.youtube.com/watch?v='+v;
+const vidThumb=v=>/^https?:/.test(v)?'':'https://i.ytimg.com/vi/'+v+'/hqdefault.jpg';
+function vidCard(v,small){const u=vidUrl(v[0]),th=vidThumb(v[0]);const kind=/vimeo/.test(u)?'Vimeo':/@/.test(u)?'채널':'YouTube';
+ return `<a class="vid${small?' sm':''}" href="${u}" target="_blank" rel="noopener">${th?`<span class="vth"><img src="${th}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()"><span class="play">▶</span></span>`:`<span class="vth noimg"><span class="play">▶</span><span class="vk">${kind}</span></span>`}<span class="vtx"><b>${esc(v[1])}</b>${v[2]?`<span>${esc(v[2])}</span>`:''}</span></a>`}
+
+const gimg=q=>'https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q);
+
+// ---------- state ----------
+const S={known:{},best:null};
+try{const d=JSON.parse(localStorage.getItem('codebook')||'{}');Object.assign(S,d)}catch(e){}
+function save(){try{localStorage.setItem('codebook',JSON.stringify(S))}catch(e){}}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const catName=id=>(CATS.find(c=>c.id===id)||{}).name;
+function stats(){$('#knownCount').textContent=Object.values(S.known).filter(Boolean).length;$('#totalCount').textContent=CODES.length;$('#bestScore').textContent=S.best==null?'—':S.best+'/10'}
+// ---------- today ----------
+let tIdx=Math.floor(Date.now()/864e5)%CODES.length;
+function today(){const c=CODES[tIdx];$('#todayName').textContent=c.id+' · '+c.name;$('#todayFormula').textContent=c.f}
+$('#todayNext').onclick=()=>{tIdx=(tIdx+1+Math.floor(Math.random()*(CODES.length-1)))%CODES.length;today()};
+// ---------- codes ----------
+let curCat='all';let MODE='ad';try{MODE=localStorage.getItem('cbMode')||'ad'}catch(e){}
+function modeBtns(){document.querySelectorAll('[data-mode]').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.mode===MODE);b.onclick=()=>{MODE=b.dataset.mode;try{localStorage.setItem('cbMode',MODE)}catch(e){};modeBtns();renderCodes();renderLessons()}})}
+function chips(){$('#catChips').innerHTML=CATS.map(c=>`<button class="chip" type="button" data-c="${c.id}" aria-pressed="${c.id===curCat}">${c.name}</button>`).join('');
+ $('#catChips').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{curCat=b.dataset.c;chips();renderCodes()})}
+function renderCodes(){const q=$('#codeSearch').value.trim();
+ const list=CODES.filter(c=>(curCat==='all'||c.cat===curCat)&&(!q||[c.id,c.name,c.f,c.why,c.pro,c.kid,c.ad,catName(c.cat)].join(' ').includes(q)));
+ $('#codeGrid').innerHTML=list.length?list.map(c=>`<article class="card"><div class="top"><span class="code">${c.id}</span><span class="catlab">${catName(c.cat)}</span></div>
+ <h3>${esc(c.name)}</h3>${vizFor(VMAP[c.id],null,MODE==='ad'?c.ad:c.kid)}<p class="formula">${esc(c.f)}</p><p class="row"><b>왜</b>${esc(c.why)}</p><p class="row pro"><b>디테일</b>${esc(c.pro)}</p><p class="row kid"><b>${MODE==='ad'?'2040 예':'어린이 예'}</b>${esc(MODE==='ad'?c.ad:c.kid)}</p>
+ ${VIDS[c.id]?`<div class="vids"><span class="vlab">실제 작품 보기</span>${VIDS[c.id].map(x=>vidCard(x)).join('')}</div>`:''}
+ <div class="cardfoot"><button class="known" type="button" data-id="${c.id}" aria-pressed="${!!S.known[c.id]}">${S.known[c.id]?'익혔어요':'익힘 표시'}</button>${VIDS[c.id]?'':`<a class="lk" href="${yt(c.name+' '+CATQ[c.cat])}" target="_blank" rel="noopener">유튜브에서 찾기</a>`}<a class="lk" href="${gimg(c.name+' '+CATQ[c.cat])}" target="_blank" rel="noopener">이미지</a></div></article>`).join(''):'<p class="lead">검색 결과가 없습니다. 다른 단어로 찾아 보세요.</p>';
+ $('#codeGrid').querySelectorAll('.known').forEach(b=>b.onclick=()=>{S.known[b.dataset.id]=!S.known[b.dataset.id];save();stats();renderCodes()})}
+$('#codeSearch').addEventListener('input',renderCodes);
+// ---------- cases ----------
+function renderCases(){$('#caseGrid').innerHTML=CASES.map((c,ci)=>`<article class="card"><div class="catlab">${c.g?'<span class="tag">2040</span>':''}${esc(c.y)}</div><h3>${esc(c.t)}</h3>
+ <p class="row"><b>무엇</b>${esc(c.what)}</p><p class="row"><b>왜</b>${esc(c.why)}</p><p class="row pro"><b>훔칠 것</b>${esc(c.steal)}</p>
+ <div>${c.codes.map(id=>`<span class="tag">${id}</span>`).join('')}</div>${CASEV[ci]?vidCard(CASEV[ci],true):''}<div class="links">${CASEV[ci]?'':`<a class="lk" href="${yt(CASEQ[ci]||c.t)}" target="_blank" rel="noopener">유튜브에서 찾기</a>`}<a class="lk" href="${gimg(CASEQ[ci]||c.t)}" target="_blank" rel="noopener">이미지 레퍼런스</a></div></article>`).join('')}
+// ---------- borrow ----------
+function renderBorrow(){$('#borrowBody').innerHTML=BORROW.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join('')}
+function gen(){const b=BORROW[Math.floor(Math.random()*BORROW.length)];const sel=$('#targetSel').value;const t=sel==='any'?TARGETS[Math.floor(Math.random()*TARGETS.length)]:sel;
+ const c=CODES[Math.floor(Math.random()*CODES.length)];
+ $('#mission').textContent=`<${b[0]}>의 <${b[1]}>을(를) 가져와 <${t}> 30초 기획안 만들기. 보조 코드: ${c.id} ${c.name}`;
+ $('#missionQs').innerHTML=[`${b[0]}에서 이 장치가 사람을 붙잡는 진짜 이유는 무엇인가? (힌트: ${b[2]})`,`${t}에서 그 이유를 만족시키는 장면 하나를 첫 3초용으로 적는다.`,`보조 코드 <${c.name}>을(를) 어디에 쓸지 한 줄로 적는다.`,`완성한 기획을 AI로 만들고, 시청 지속 그래프에서 이탈 지점을 확인한다.`].map(x=>`<li>${esc(x)}</li>`).join('')}
+$('#genBtn').onclick=gen;$('#targetSel').onchange=gen;
+// ---------- ages / trends ----------
+function renderAges(){$('#ageBody').innerHTML=AGES.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join('')}
+function renderDeep(){$('#deepBody').innerHTML=DEEP.map(r=>`<tr>${r.map((x,i)=>`<td>${i?esc(x):'<b>'+esc(x)+'</b>'}</td>`).join('')}</tr>`).join('');$('#motiveGrid').innerHTML=MOTIVES.map(m=>`<article class="card"><h3>${esc(m[0])}</h3><p class="row">${esc(m[1])}</p><p class="row kid"><b>카피 예</b>${esc(m[2])}</p></article>`).join('')}
+function renderTrends(){$('#trendGrid').innerHTML=TRENDS.map(t=>`<article class="card"><h3>${esc(t.t)}</h3><p class="row">${esc(t.d)}</p><p class="src">근거: ${esc(t.lv)}${t.src?` · <a href="${t.src[1]}" target="_blank" rel="noopener">${esc(t.src[0])}</a>`:''}</p></article>`).join('')}
+// ---------- quiz ----------
+let QZ=null;
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function drillQs(){return shuffle(CODES).slice(0,10).map(c=>{const others=shuffle(CODES.filter(x=>x.id!==c.id)).slice(0,3);const opts=shuffle([c,...others]);
+ return{q:`다음 공식의 이름은? <${c.f}>`,o:opts.map(x=>x.id+' '+x.name),a:opts.indexOf(c),e:`${c.id} ${c.name}. ${c.why}`}})}
+function startQuiz(kind){const qs=kind==='drill'?drillQs():shuffle(SCEN).slice(0,10).map(q=>{const idx=shuffle([0,1,2,3]);return{q:q.q,o:idx.map(i=>q.o[i]),a:idx.indexOf(q.a),e:q.e}});
+ QZ={kind,qs,i:0,score:0,wrong:[],answered:false};drawQ()}
+function drawQ(){const z=QZ;if(!z){$('#quizBox').innerHTML='<p class="qtext" style="margin-top:0">퀴즈를 골라 시작하세요.</p><p class="note">상황 퀴즈 '+SCEN.length+'문제와 코드 드릴(공식 '+CODES.length+'개에서 무작위)이 있습니다.</p>';return}
+ if(z.i>=z.qs.length){if(z.kind==='scenario'&&(S.best==null||z.score>S.best)){S.best=z.score;save();stats()}
+  $('#quizBox').innerHTML=`<div class="qmeta"><span>결과</span><span>${z.kind==='drill'?'코드 드릴':'상황 퀴즈'}</span></div><p class="qtext">${z.score} / ${z.qs.length}</p>${z.wrong.length?'<p class="catlab">다시 볼 문제</p>'+z.wrong.map(w=>`<div class="fb"><strong>${esc(w.q)}</strong>${esc(w.e)}</div>`).join(''):'<p>모두 맞혔습니다.</p>'}<div class="qbar"><button class="btn" type="button" id="again">다시 하기</button></div>`;
+  $('#again').onclick=()=>startQuiz(z.kind);return}
+ const q=z.qs[z.i];
+ $('#quizBox').innerHTML=`<div class="qmeta"><span>${z.i+1} / ${z.qs.length}</span><span>맞힘 ${z.score}</span></div><div class="progress"><i style="width:${z.i/z.qs.length*100}%"></i></div>
+ <p class="qtext">${esc(q.q)}</p><div class="opts">${q.o.map((o,i)=>`<button class="opt" type="button" data-i="${i}">${esc(o)}</button>`).join('')}</div><div id="fbSlot"></div>`;
+ $('#quizBox').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{if(z.answered)return;z.answered=true;const i=+b.dataset.i;const ok=i===q.a;if(ok)z.score++;else z.wrong.push(q);
+  $('#quizBox').querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(+x.dataset.i===q.a)x.classList.add('right');else if(+x.dataset.i===i)x.classList.add('wrong')});
+  $('#fbSlot').innerHTML=`<div class="fb"><strong>${ok?'맞았습니다.':'아쉽습니다.'}</strong>${esc(q.e)}</div><div class="qbar"><button class="btn" type="button" id="nextQ">${z.i+1<z.qs.length?'다음 문제':'결과 보기'}</button></div>`;
+  $('#nextQ').onclick=()=>{z.i++;z.answered=false;drawQ()};$('#nextQ').focus()})}
+$('#startScenario').onclick=()=>startQuiz('scenario');$('#startDrill').onclick=()=>startQuiz('drill');
+// ---------- 새 레슨 · 질문하기 (Claude) ----------
+const CASEQ=['Old Spice The Man Your Man Could Smell Like','Dumb Ways to Die','Volvo Trucks Epic Split','Dove Real Beauty Sketches','Apple 1984 commercial','핑크퐁 아기상어','오징어 게임 예고편','충주시 유튜브','Up opening married life','Wes Anderson symmetry','Inception trailer braam','MrBeast thumbnail','배달의민족 광고','빙그레우스','토스 광고','오늘의집 광고','Shot on iPhone','당근 광고'];
+let LESSONS=[];try{LESSONS=JSON.parse(localStorage.getItem('cbLessons')||'[]')}catch(e){}
+function saveLessons(){try{localStorage.setItem('cbLessons',JSON.stringify(LESSONS.slice(0,40)))}catch(e){}}
+let SAMPLE=null,labCtl=null,askCtl=null;
+const ERR={not_granted:'Claude 사용을 허용하지 않아 이 기능을 쓸 수 없습니다.',sampling_disabled:'이 계정에서는 Claude 호출을 쓸 수 없습니다.',rate_limited:'요청이 많습니다. 잠시 뒤 다시 눌러 주세요.',invalid_json:'답을 읽지 못했습니다. 다시 눌러 주세요.',refused:'이 요청에는 답할 수 없습니다. 주제를 바꿔 보세요.',session_expired:'다시 로그인한 뒤 눌러 주세요.'};
+const errMsg=e=>ERR[e&&e.code]||'잠시 연결이 끊겼습니다. 다시 눌러 주세요.';
+function lessonCard(l,i){const ex=MODE==='ad'?l.apply_2040:l.apply_kid;const qz=l.quiz||{};
+ return `<article class="card lesson"><div class="top"><span class="code">NEW</span><span class="catlab">${esc(l.field||'')} · ${esc(l.case_year||'')}</span></div>
+ <h3>${esc(l.title||'')}</h3>${vizFor(VIZ[l.viz]?l.viz:'copy',null,l.formula)}
+ <p class="row"><b>사례</b>${esc(l.case_name||'')}</p><p class="row"><b>무엇</b>${esc(l.what||'')}</p><p class="row"><b>왜</b>${esc(l.why||'')}</p>
+ <p class="formula">${esc(l.formula||'')}</p><p class="row pro"><b>디테일</b>${esc(l.pro_detail||'')}</p><p class="row kid"><b>${MODE==='ad'?'2040 예':'어린이 예'}</b>${esc(ex||'')}</p>
+ ${qz.q?`<div class="miniq"><p class="row"><b>퀴즈</b>${esc(qz.q)}</p>${(qz.options||[]).map((o,j)=>`<button class="opt" type="button" data-l="${i}" data-j="${j}">${esc(o)}</button>`).join('')}<div class="mfb" id="mfb${i}"></div></div>`:''}
+ <div class="links"><a class="lk" href="${yt(l.search_query||l.case_name||'')}" target="_blank" rel="noopener">유튜브에서 실제 영상 보기</a><a class="lk" href="${gimg(l.search_query||l.case_name||'')}" target="_blank" rel="noopener">이미지 레퍼런스</a></div>
+ <p class="src">AI가 만든 레슨입니다. 사례 연도와 세부 사실은 링크로 확인하세요.</p></article>`}
+function renderLessons(){const g=$('#lessonGrid');g.innerHTML=LESSONS.length?LESSONS.map(lessonCard).join(''):'<p class="lead">아직 받은 레슨이 없습니다. <새 레슨 받기>를 누르면 여기에 쌓입니다.</p>';
+ g.querySelectorAll('.miniq .opt').forEach(b=>b.onclick=()=>{const l=LESSONS[+b.dataset.l],q=l.quiz,j=+b.dataset.j;const box=b.parentElement;box.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(+x.dataset.j===q.answer)x.classList.add('right');else if(+x.dataset.j===j)x.classList.add('wrong')});
+  $('#mfb'+b.dataset.l).innerHTML=`<div class="fb"><strong>${j===q.answer?'맞았습니다.':'아쉽습니다.'}</strong>${esc(q.explain||'')}</div>`})}
+async function newLesson(){if(!SAMPLE)return;const btn=$('#labBtn');btn.disabled=true;$('#labStop').hidden=false;$('#labStatus').textContent='레슨을 만드는 중입니다… (보통 20~60초)';
+ labCtl=new AbortController();const field=$('#labField').value;const seen=CASES.map(c=>c.t).concat(LESSONS.map(l=>l.case_name)).join(', ');
+ const prompt=`당신은 광고·영상 연출 교육자입니다. 한국어로, 콘텐츠 기획자가 안목을 키울 수 있는 레슨 1개를 만드세요.
+분야: ${field==='any'?'광고, 쇼츠, 영화 예고편, 뮤직비디오, 브랜드 캠페인, 게임 트레일러 중 하나를 골라':field}.
+조건: 실제로 널리 알려진 작품이나 캠페인 1개를 사례로 고르고, 사실이 확실하지 않은 부분은 쓰지 마세요. 다음 사례는 이미 다뤘으니 피하세요: ${seen}.
+사례에서 다른 분야에도 옮겨 쓸 수 있는 원리 하나를 뽑고, 20~40대 대상 오디오북·전자책·출판 사업과 어린이 교육 콘텐츠에 각각 대입한 예를 쓰세요.
+괄호 「」는 쓰지 말고 < >를 쓰세요.
+viz 값은 다음 중 원리에 가장 맞는 하나: ${Object.keys(VIZ).filter(k=>k!=='copy'&&k!=='palette').join(', ')}.
+다음 JSON 객체 하나로만 답하세요:
+{"title":"레슨 제목(15자 안팎)","field":"분야","case_name":"작품명","case_year":"연도","what":"무엇을 했나 1~2문장","why":"왜 통했나 1~2문장","formula":"옮겨 쓸 공식 한 문장","pro_detail":"전문가만 보는 디테일 1문장","apply_2040":"2040 오디오북·출판 사업 대입 예","apply_kid":"어린이 교육 콘텐츠 대입 예","viz":"키","search_query":"유튜브 검색어","quiz":{"q":"상황 퀴즈 질문","options":["보기1","보기2","보기3","보기4"],"answer":0,"explain":"해설 1문장"}}`;
+ try{const l=await SAMPLE.json(prompt,{signal:labCtl.signal,cache:false});if(!l||!l.title)throw{code:'invalid_json'};
+  if(l.quiz&&(typeof l.quiz.answer!=='number'||!Array.isArray(l.quiz.options)))delete l.quiz;LESSONS.unshift(l);saveLessons();renderLessons();$('#labStatus').textContent='새 레슨이 맨 앞에 추가됐습니다.'}
+ catch(e){$('#labStatus').textContent=e&&e.code==='cancelled'?'멈췄습니다.':errMsg(e);if(e&&(e.code==='not_granted'||e.code==='sampling_disabled'))$('#labLive').hidden=true}
+ finally{btn.disabled=false;$('#labStop').hidden=true}}
+async function ask(){if(!SAMPLE)return;const q=$('#askIn').value.trim();if(!q)return;const out=$('#askOut');$('#askBtn').disabled=true;out.textContent='생각하는 중…';askCtl=new AbortController();
+ const prompt=`당신은 광고·영상 연출과 콘텐츠 마케팅 전문가입니다. 질문자는 20~40대 대상 오디오북·전자책·출판 사업을 하고, 음악 전문가입니다. 한국어로 답하세요.
+규칙: 실제 사례를 들 때는 확실한 것만 쓰고, 모르면 모른다고 쓰세요. 「」 대신 < >를 쓰세요. 마지막 줄에 한 줄 요약과, 유튜브에서 찾아볼 검색어 2~3개를 <검색어: …> 형식으로 쓰세요. 600자 안팎.
+질문: ${q}`;
+ try{await SAMPLE(prompt,{signal:askCtl.signal,cache:false,onText:({text})=>{out.textContent=text}});const m=out.textContent.match(/검색어:\s*([^\n>]+)/);
+  if(m){const ks=m[1].split(/[,·/]/).map(s=>s.trim()).filter(Boolean).slice(0,3);$('#askLinks').innerHTML=ks.map(k=>`<a class="lk" href="${yt(k)}" target="_blank" rel="noopener">${esc(k)} 유튜브</a>`).join('')}}
+ catch(e){out.textContent=(e&&e.text)||'';if(!(e&&e.code==='cancelled'))$('#askLinks').innerHTML=`<span class="src">${esc(errMsg(e))}</span>`}
+ finally{$('#askBtn').disabled=false}}
+(async()=>{try{SAMPLE=await window.claude?.use?.('sample')}catch(e){SAMPLE=null}
+ $('#labLive').hidden=!SAMPLE;$('#labOff').hidden=!!SAMPLE})();
+$('#labBtn').onclick=newLesson;$('#labStop').onclick=()=>labCtl&&labCtl.abort();$('#askBtn').onclick=ask;
+$('#askIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();ask()}});
+document.querySelectorAll('.askchip').forEach(b=>b.onclick=()=>{$('#askIn').value=b.textContent;ask()});
+
+// ---------- routing ----------
+const VIEWS=['codes','cases','borrow','ages','trends','quiz','lab'];
+function route(){const h=(location.hash||'#codes').slice(1);const v=VIEWS.includes(h)?h:'codes';
+ VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v});document.querySelectorAll('nav.tabs a').forEach(a=>a.setAttribute('aria-current',a.getAttribute('href')==='#'+v?'page':'false'))}
+window.addEventListener('hashchange',route);
+// ---------- init ----------
+chips();modeBtns();renderCodes();renderLessons();renderCases();renderBorrow();renderAges();renderDeep();renderTrends();gen();drawQ();today();stats();route();
+</script>
+
+<script>if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})</script>
+</body>
+</html>
